@@ -43,6 +43,14 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'links.update', 'group' => 'links', 'label' => 'Update own links'],
             ['name' => 'links.approve', 'group' => 'links', 'label' => 'Approve links'],
             ['name' => 'task_templates.manage', 'group' => 'tasks', 'label' => 'Manage task templates'],
+            // Milestone 4 — People
+            ['name' => 'login_history.view', 'group' => 'people', 'label' => 'View login history'],
+            ['name' => 'attendance.view', 'group' => 'people', 'label' => 'View attendance'],
+            ['name' => 'attendance.manage', 'group' => 'people', 'label' => 'Mark leave / holiday'],
+            ['name' => 'work_logs.view', 'group' => 'people', 'label' => 'View work logs'],
+            ['name' => 'work_logs.manage', 'group' => 'people', 'label' => 'Write own work logs'],
+            ['name' => 'scorecards.view', 'group' => 'people', 'label' => 'View performance scorecards'],
+            ['name' => 'people.view_team', 'group' => 'people', 'label' => 'View team people data'],
         ];
 
         foreach ($permissions as $permission) {
@@ -72,6 +80,19 @@ class RolePermissionSeeder extends Seeder
             'credentials.view',
         ];
 
+        $peopleSelf = [
+            'login_history.view',
+            'attendance.view',
+            'work_logs.view',
+            'work_logs.manage',
+            'scorecards.view',
+        ];
+        $peopleTeam = [
+            ...$peopleSelf,
+            'people.view_team',
+            'attendance.manage',
+        ];
+
         $roles = [
             'admin' => [
                 'label' => 'Admin',
@@ -86,6 +107,7 @@ class RolePermissionSeeder extends Seeder
                     'projects.view',
                     // Read-only work visibility on owned/accessible projects — no write
                     ...$workView,
+                    ...$peopleSelf,
                 ],
             ],
             'supervisor' => [
@@ -96,6 +118,7 @@ class RolePermissionSeeder extends Seeder
                     'projects.view',
                     'projects.update',
                     ...$workSupervisor,
+                    ...$peopleTeam,
                 ],
             ],
             'staff' => [
@@ -105,6 +128,7 @@ class RolePermissionSeeder extends Seeder
                     'dashboard.view',
                     'projects.view',
                     ...$workStaff,
+                    ...$peopleSelf,
                 ],
             ],
             'accountant' => [

@@ -22,6 +22,15 @@
                 error="{{ $errors->first('display_timezone') }}"
                 hint="Stored timestamps remain UTC."
             />
+            <x-input
+                type="number"
+                label="Late arrival hour (local)"
+                wire:model="late_arrival_hour"
+                error="{{ $errors->first('late_arrival_hour') }}"
+                hint="First login after this hour (0–23) counts as late. Default 10 = after 10:00 Asia/Karachi."
+                min="0"
+                max="23"
+            />
         </div>
 
         <div class="rounded-xl border border-line bg-surface p-6 space-y-4">

@@ -61,6 +61,39 @@
         </div>
     @endif
 
+    @if ($canSeeTeamAttendance)
+        <div class="mb-8 rounded-xl border border-line bg-surface p-5">
+            <div class="mb-3 flex items-center justify-between">
+                <h2 class="text-base font-semibold">Team attendance today</h2>
+                @if ($canSeePeople)
+                    <a href="{{ route('people.attendance') }}" wire:navigate class="text-sm font-medium text-accent hover:underline">Sheet</a>
+                @endif
+            </div>
+            <ul class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                @foreach ($teamAttendanceToday as $row)
+                    <li class="flex items-center justify-between rounded-lg border border-line/70 px-3 py-2 text-sm">
+                        <span class="font-medium">{{ $row['name'] }}</span>
+                        @if ($row['status'] === 'present')
+                            <x-badge tone="success">{{ $row['is_late'] ? 'Late' : 'Present' }}</x-badge>
+                        @elseif ($row['status'] === 'leave')
+                            <x-badge tone="warn">Leave</x-badge>
+                        @elseif ($row['status'] === 'holiday')
+                            <x-badge tone="accent">Holiday</x-badge>
+                        @else
+                            <x-badge tone="danger">{{ $row['status_label'] }}</x-badge>
+                        @endif
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    @elseif ($canSeePeople)
+        <div class="mb-8 flex flex-wrap gap-3 text-sm">
+            <a href="{{ route('people.work-logs') }}" wire:navigate class="rounded-lg border border-line bg-surface px-3 py-2 text-accent hover:underline">Work log</a>
+            <a href="{{ route('people.scorecard') }}" wire:navigate class="rounded-lg border border-line bg-surface px-3 py-2 text-accent hover:underline">My scorecard</a>
+            <a href="{{ route('people.attendance') }}" wire:navigate class="rounded-lg border border-line bg-surface px-3 py-2 text-accent hover:underline">Attendance</a>
+        </div>
+    @endif
+
     @if ($canViewProjects)
         <div class="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <div class="rounded-xl border border-line bg-surface px-5 py-4">

@@ -7,11 +7,15 @@ use App\Enums\LinkWorkflowStatus;
 use App\Enums\ProjectStatus;
 use App\Enums\TaskStatus;
 use App\Models\Article;
+use App\Models\AttendanceDay;
 use App\Models\Credential;
 use App\Models\Link;
 use App\Models\Project;
 use App\Models\Task;
+use App\Models\User;
+use App\Services\PeopleVisibilityService;
 use App\Support\AppSettings;
+use App\Support\DisplayTimezone;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -123,6 +127,41 @@ class Dashboard extends Component
                 ->count()
             : 0;
 
+        $teamAttendanceToday = collect();
+        $canSeePeople = (bool) $user?->hasPermission('attendance.view');
+        if ($canSeePeople && $user) {
+            $visibility = app(PeopleVisibilityService::class);
+            $ids = $visibility->viewableUserIds($user);
+            $today = DisplayTimezone::today();
+
+            if ($user->hasPermission('people.view_team') || $user->isAdmin()) {
+                $teamUsers = User::query()
+                    ->whereIn('id', $ids->all())
+                    ->where('is_active', true)
+                    ->orderBy('name')
+                    ->limit(12)
+                    ->get();
+
+                $days = AttendanceDay::query()
+                    ->whereIn('user_id', $teamUsers->pluck('id'))
+                    ->whereDate('local_date', $today)
+                    ->get()
+                    ->keyBy('user_id');
+
+                $teamAttendanceToday = $teamUsers->map(function (User $u) use ($days) {
+                    /** @var AttendanceDay|null $day */
+                    $day = $days->get($u->id);
+
+                    return [
+                        'name' => $u->name,
+                        'status' => $day?->status?->value ?? 'absent',
+                        'status_label' => $day?->status?->label() ?? 'Not checked in',
+                        'is_late' => (bool) ($day?->is_late),
+                    ];
+                });
+            }
+        }
+
         return view('livewire.dashboard', [
             'totalProjects' => $totalProjects,
             'byStatus' => $byStatus,
@@ -140,6 +179,9 @@ class Dashboard extends Component
             'openTasksPortfolio' => $openTasksPortfolio,
             'canSeeApprovals' => (bool) $user?->hasAnyPermission('tasks.approve', 'articles.approve', 'links.approve'),
             'canSeeTasks' => (bool) $user?->hasPermission('tasks.view'),
+            'teamAttendanceToday' => $teamAttendanceToday,
+            'canSeeTeamAttendance' => $teamAttendanceToday->isNotEmpty(),
+            'canSeePeople' => $canSeePeople,
         ]);
     }
 }

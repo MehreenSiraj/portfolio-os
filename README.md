@@ -1,6 +1,6 @@
 # PinSA Portfolio — Internal Website Portfolio Management System
 
-Through **Milestone 2** (Projects & credentials). Later milestones are not built yet.
+Through **Milestone 4** (People: attendance, login history, work logs, scorecards).
 
 ## Requirements
 
@@ -39,7 +39,8 @@ Open http://127.0.0.1:8000 and sign in.
 | Supervisor | supervisor@example.com  | password |
 | Staff      | staff@example.com       | password |
 
-Demo projects: `alpha-demo.test`, `beta-demo.test` (with vault credentials + expiring SSL).
+Demo projects: `alpha-demo.test`, `beta-demo.test` (with vault credentials + expiring SSL).  
+People demo: login history, leave day, work logs, pay rates on staff, scorecard fixture work.
 
 Change seed passwords after first login in any shared environment.
 
@@ -49,6 +50,7 @@ Change seed passwords after first login in any shared environment.
 php artisan schedule:run
 # daily: credentials:check-expiry --notify
 php artisan queue:work --stop-when-empty
+# optional catch-up: attendance:sync --month=Y-m
 ```
 
 ## Tests

@@ -3,6 +3,7 @@
 namespace App\Livewire\Auth;
 
 use App\Models\User;
+use App\Services\LoginHistoryService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
@@ -51,6 +52,11 @@ class Login extends Component
         RateLimiter::clear($this->throttleKey());
 
         session()->regenerate();
+
+        $authUser = Auth::user();
+        if ($authUser instanceof User) {
+            app(LoginHistoryService::class)->record($authUser, request());
+        }
 
         $this->redirectIntended(default: route('dashboard'), navigate: true);
     }

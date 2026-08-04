@@ -15,6 +15,7 @@ class SettingsSeeder extends Seeder
             'base_currency' => ['value' => 'PKR'],
             'display_timezone' => ['value' => 'Asia/Karachi'],
             'two_factor_required' => ['value' => false],
+            'late_arrival_hour' => ['value' => 10],
             'fx_defaults' => [
                 'value' => [
                     'USD_to_PKR' => null,

@@ -9,6 +9,10 @@ use App\Livewire\Auth\Login;
 use App\Livewire\Auth\ResetPassword;
 use App\Livewire\Dashboard;
 use App\Livewire\Links\Index as LinksIndex;
+use App\Livewire\People\AttendanceIndex;
+use App\Livewire\People\LoginHistoryIndex;
+use App\Livewire\People\ScorecardShow;
+use App\Livewire\People\WorkLogsIndex;
 use App\Livewire\Projects\Index as ProjectsIndex;
 use App\Livewire\Projects\Show as ProjectShow;
 use App\Livewire\Settings\Index as SettingsIndex;
@@ -74,4 +78,21 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
 
     Route::get('/approvals', ApprovalQueue::class)
         ->name('approvals.queue');
+
+    // Milestone 4 — People
+    Route::get('/people/login-history', LoginHistoryIndex::class)
+        ->middleware(EnsurePermission::class.':login_history.view')
+        ->name('people.login-history');
+
+    Route::get('/people/attendance', AttendanceIndex::class)
+        ->middleware(EnsurePermission::class.':attendance.view')
+        ->name('people.attendance');
+
+    Route::get('/people/work-logs', WorkLogsIndex::class)
+        ->middleware(EnsurePermission::class.':work_logs.view')
+        ->name('people.work-logs');
+
+    Route::get('/people/scorecard', ScorecardShow::class)
+        ->middleware(EnsurePermission::class.':scorecards.view')
+        ->name('people.scorecard');
 });

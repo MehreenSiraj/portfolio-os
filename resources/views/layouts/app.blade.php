@@ -57,6 +57,38 @@
                     </a>
                 @endif
 
+                @if(auth()->user()?->hasAnyPermission('attendance.view', 'login_history.view', 'work_logs.view', 'scorecards.view'))
+                    <p class="mt-4 px-3 font-mono text-[10px] tracking-[0.14em] text-muted uppercase">People</p>
+                @endif
+
+                @if(auth()->user()?->hasPermission('attendance.view'))
+                    <a href="{{ route('people.attendance') }}" wire:navigate
+                       class="rounded-lg px-3 py-2 text-sm font-medium transition {{ request()->routeIs('people.attendance') ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-canvas hover:text-ink' }}">
+                        Attendance
+                    </a>
+                @endif
+
+                @if(auth()->user()?->hasPermission('work_logs.view'))
+                    <a href="{{ route('people.work-logs') }}" wire:navigate
+                       class="rounded-lg px-3 py-2 text-sm font-medium transition {{ request()->routeIs('people.work-logs') ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-canvas hover:text-ink' }}">
+                        Work logs
+                    </a>
+                @endif
+
+                @if(auth()->user()?->hasPermission('scorecards.view'))
+                    <a href="{{ route('people.scorecard') }}" wire:navigate
+                       class="rounded-lg px-3 py-2 text-sm font-medium transition {{ request()->routeIs('people.scorecard') ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-canvas hover:text-ink' }}">
+                        Scorecard
+                    </a>
+                @endif
+
+                @if(auth()->user()?->hasPermission('login_history.view'))
+                    <a href="{{ route('people.login-history') }}" wire:navigate
+                       class="rounded-lg px-3 py-2 text-sm font-medium transition {{ request()->routeIs('people.login-history') ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-canvas hover:text-ink' }}">
+                        Login history
+                    </a>
+                @endif
+
                 @if(auth()->user()?->hasPermission('users.view'))
                     <a href="{{ route('users.index') }}" wire:navigate
                        class="rounded-lg px-3 py-2 text-sm font-medium transition {{ request()->routeIs('users.*') ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-canvas hover:text-ink' }}">
@@ -119,6 +151,15 @@
                 @endif
                 @if(auth()->user()?->hasAnyPermission('tasks.approve', 'articles.approve', 'links.approve'))
                     <a href="{{ route('approvals.queue') }}" wire:navigate class="rounded-md px-3 py-1.5 text-sm {{ request()->routeIs('approvals.*') ? 'bg-accent-soft text-accent' : 'text-muted' }}">Approvals</a>
+                @endif
+                @if(auth()->user()?->hasPermission('attendance.view'))
+                    <a href="{{ route('people.attendance') }}" wire:navigate class="rounded-md px-3 py-1.5 text-sm {{ request()->routeIs('people.attendance') ? 'bg-accent-soft text-accent' : 'text-muted' }}">Attendance</a>
+                @endif
+                @if(auth()->user()?->hasPermission('work_logs.view'))
+                    <a href="{{ route('people.work-logs') }}" wire:navigate class="rounded-md px-3 py-1.5 text-sm {{ request()->routeIs('people.work-logs') ? 'bg-accent-soft text-accent' : 'text-muted' }}">Logs</a>
+                @endif
+                @if(auth()->user()?->hasPermission('scorecards.view'))
+                    <a href="{{ route('people.scorecard') }}" wire:navigate class="rounded-md px-3 py-1.5 text-sm {{ request()->routeIs('people.scorecard') ? 'bg-accent-soft text-accent' : 'text-muted' }}">Scorecard</a>
                 @endif
                 @if(auth()->user()?->hasPermission('users.view'))
                     <a href="{{ route('users.index') }}" wire:navigate class="rounded-md px-3 py-1.5 text-sm {{ request()->routeIs('users.*') ? 'bg-accent-soft text-accent' : 'text-muted' }}">Users</a>

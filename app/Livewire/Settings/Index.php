@@ -28,6 +28,8 @@ class Index extends Component
 
     public string $credential_expiry_notify_emails = '';
 
+    public int $late_arrival_hour = 10;
+
     public function mount(): void
     {
         abort_unless(Auth::user()?->hasPermission('settings.view'), 403);
@@ -36,6 +38,7 @@ class Index extends Component
         $this->base_currency = (string) AppSettings::get('base_currency', 'PKR');
         $this->display_timezone = (string) AppSettings::get('display_timezone', 'Asia/Karachi');
         $this->two_factor_required = (bool) AppSettings::get('two_factor_required', false);
+        $this->late_arrival_hour = (int) AppSettings::get('late_arrival_hour', 10);
 
         $fx = AppSettings::get('fx_defaults', []);
         $this->fx_usd_to_pkr = isset($fx['USD_to_PKR']) && $fx['USD_to_PKR'] !== null
@@ -63,6 +66,7 @@ class Index extends Component
             'base_currency' => ['required', 'string', 'size:3'],
             'display_timezone' => ['required', 'string', 'timezone'],
             'two_factor_required' => ['boolean'],
+            'late_arrival_hour' => ['required', 'integer', 'min:0', 'max:23'],
             'fx_usd_to_pkr' => ['nullable', 'string', 'max:32'],
             'fx_note' => ['nullable', 'string', 'max:500'],
             'credential_expiry_thresholds' => ['required', 'string', 'max:64'],
@@ -92,6 +96,7 @@ class Index extends Component
         AppSettings::set('base_currency', strtoupper($validated['base_currency']));
         AppSettings::set('display_timezone', $validated['display_timezone']);
         AppSettings::set('two_factor_required', (bool) $validated['two_factor_required']);
+        AppSettings::set('late_arrival_hour', (int) $validated['late_arrival_hour']);
         AppSettings::set('fx_defaults', [
             'USD_to_PKR' => $validated['fx_usd_to_pkr'] !== '' ? $validated['fx_usd_to_pkr'] : null,
             'note' => $validated['fx_note'] ?: 'Set rates when recording multi-currency amounts (Milestone 5).',

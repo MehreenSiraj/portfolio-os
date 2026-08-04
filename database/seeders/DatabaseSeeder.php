@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             TaskTemplateSeeder::class,
             DemoPortfolioSeeder::class,
             DemoWorkSeeder::class,
+            DemoPeopleSeeder::class,
         ]);
     }
 }

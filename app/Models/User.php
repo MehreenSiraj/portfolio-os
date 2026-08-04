@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
@@ -50,6 +51,26 @@ class User extends Authenticatable
         return $this->belongsToMany(Project::class, 'project_user')
             ->withPivot('assignment_note')
             ->withTimestamps();
+    }
+
+    public function loginHistories(): HasMany
+    {
+        return $this->hasMany(LoginHistory::class);
+    }
+
+    public function attendanceDays(): HasMany
+    {
+        return $this->hasMany(AttendanceDay::class);
+    }
+
+    public function workLogs(): HasMany
+    {
+        return $this->hasMany(WorkLog::class);
+    }
+
+    public function payRates(): HasMany
+    {
+        return $this->hasMany(PayRate::class);
     }
 
     /**
