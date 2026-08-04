@@ -1,0 +1,93 @@
+<?php
+
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
+
+uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    config(['ops.token' => null]);
+});
+
+it('returns not found for ops when token is empty', function () {
+    config(['ops.token' => '']);
+    config(['ops.token' => null]);
+
+    $this->get('/_ops/cache-clear?token=anything')
+        ->assertNotFound();
+
+    $this->get('/_ops/migrate')
+        ->assertNotFound();
+});
+
+it('rejects wrong ops token', function () {
+    config(['ops.token' => 'correct-secret-token']);
+
+    $this->get('/_ops/cache-clear?token=wrong-token')
+        ->assertForbidden();
+
+    $this->get('/_ops/cache-clear')
+        ->assertForbidden();
+});
+
+it('rejects unknown ops actions even with a valid token', function () {
+    config(['ops.token' => 'correct-secret-token']);
+
+    $this->get('/_ops/destroy-all?token=correct-secret-token')
+        ->assertNotFound();
+});
+
+it('runs cache-clear with a valid token and returns plain text', function () {
+    config(['ops.token' => 'correct-secret-token']);
+
+    $response = $this->get('/_ops/cache-clear?token=correct-secret-token');
+
+    $response->assertOk();
+    expect($response->headers->get('content-type'))->toContain('text/plain');
+    $response->assertSee('exit=', false);
+});
+
+it('runs migrate --force with a valid token in testing', function () {
+    config(['ops.token' => 'correct-secret-token']);
+
+    // Tables already migrated by RefreshDatabase; artisan migrate should be a no-op success.
+    $response = $this->get('/_ops/migrate?token=correct-secret-token');
+
+    $response->assertOk();
+    expect($response->headers->get('content-type'))->toContain('text/plain');
+    $response->assertSee('exit=0', false);
+    expect(Schema::hasTable('users'))->toBeTrue();
+});
+
+it('runs storage-link ops and ensures public storage path exists', function () {
+    config(['ops.token' => 'correct-secret-token']);
+
+    $response = $this->get('/_ops/storage-link?token=correct-secret-token');
+
+    $response->assertOk();
+    expect(
+        is_link(public_path('storage'))
+        || is_dir(public_path('storage'))
+    )->toBeTrue();
+});
+
+it('serves public storage files via media fallback route', function () {
+    $dir = storage_path('app/public/ops-test');
+    File::ensureDirectoryExists($dir);
+    File::put($dir.'/hello.txt', 'pinsa-public-fallback');
+
+    $response = $this->get('/media/public/ops-test/hello.txt');
+    $response->assertOk();
+    expect($response->streamedContent())->toBe('pinsa-public-fallback');
+
+    $this->get('/media/public/../private/secret.txt')
+        ->assertNotFound();
+});
+
+it('runs db:backup for sqlite file databases when available', function () {
+    // In-memory testing DB cannot be file-copied; command should fail cleanly.
+    $exit = Artisan::call('db:backup');
+    expect($exit)->toBe(1);
+});

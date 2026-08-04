@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\OpsController;
+use App\Http\Controllers\PublicStorageController;
 use App\Http\Middleware\EnsurePermission;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Livewire\Approvals\Queue as ApprovalQueue;
@@ -29,6 +31,25 @@ use App\Livewire\Tasks\Show as TaskShow;
 use App\Livewire\Users\Index as UsersIndex;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| Hostinger ops (no SSH) — disabled when OPS_TOKEN is empty
+|--------------------------------------------------------------------------
+*/
+Route::get('/_ops/{action}', OpsController::class)
+    ->where('action', 'migrate|storage-link|cache-clear|optimize')
+    ->middleware('throttle:'.max(1, (int) config('ops.throttle', 5)).',1')
+    ->name('ops');
+
+/*
+|--------------------------------------------------------------------------
+| Public storage fallback when symlink(/public/storage) fails
+|--------------------------------------------------------------------------
+*/
+Route::get('/media/public/{path}', PublicStorageController::class)
+    ->where('path', '.*')
+    ->name('media.public');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', Login::class)->name('login');

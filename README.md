@@ -1,6 +1,6 @@
 # PinSA Portfolio — Internal Website Portfolio Management System
 
-Through **Milestone 5** (Money: revenue, expenses, shared allocation, P&L, distributions, partner ledger).
+Through **Milestone 6** (Hostinger FTP packaging, deployment docs, ops route).
 
 ## Requirements
 
@@ -30,6 +30,8 @@ php artisan serve
 
 Open http://127.0.0.1:8000 and sign in.
 
+Production deploy: **[DEPLOYMENT.md](DEPLOYMENT.md)**.
+
 ## Default accounts (seed)
 
 | Role         | Email                      | Password |
@@ -51,4 +53,11 @@ Change seed passwords after first login in any shared environment.
 php artisan schedule:run
 ```
 
-Includes: credential expiry, recurring tasks, recurring expenses (`expenses:generate-recurring`). Pair with `queue:work --stop-when-empty` if using database queue.
+Includes: credential expiry, recurring tasks, recurring expenses (`expenses:generate-recurring`). Pair with `queue:work --stop-when-empty` if using database queue. Full Hostinger cron examples are in DEPLOYMENT.md.
+
+## Packaging (Milestone 6)
+
+```bash
+./deploy/package.sh          # → deploy/dist/app.zip + public.zip
+# or: powershell -File deploy/package.ps1
+```
