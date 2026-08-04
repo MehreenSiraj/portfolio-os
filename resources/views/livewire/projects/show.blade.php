@@ -22,7 +22,6 @@
         </div>
     </div>
 
-    {{-- Snapshot stubs for M3/M5 --}}
     <div class="mb-8 grid gap-3 sm:grid-cols-4">
         <div class="rounded-xl border border-line bg-surface px-4 py-3">
             <p class="text-xs text-muted">Month revenue</p>
@@ -40,6 +39,27 @@
             <p class="text-xs text-muted">Open tasks</p>
             <p class="mt-1 font-semibold tabular-nums">{{ $project->openTasksCount() }}</p>
         </div>
+    </div>
+
+    <div class="mb-8 flex flex-wrap gap-2">
+        @if(auth()->user()?->hasPermission('tasks.view'))
+            <a href="{{ route('tasks.index', ['projectFilter' => $project->id]) }}" wire:navigate
+               class="rounded-lg border border-line bg-surface px-3 py-1.5 text-sm font-medium text-ink hover:bg-canvas">
+                Tasks
+            </a>
+        @endif
+        @if(auth()->user()?->hasPermission('articles.view'))
+            <a href="{{ route('articles.index', ['projectFilter' => $project->id]) }}" wire:navigate
+               class="rounded-lg border border-line bg-surface px-3 py-1.5 text-sm font-medium text-ink hover:bg-canvas">
+                Articles
+            </a>
+        @endif
+        @if(auth()->user()?->hasPermission('links.view'))
+            <a href="{{ route('links.index', ['projectFilter' => $project->id]) }}" wire:navigate
+               class="rounded-lg border border-line bg-surface px-3 py-1.5 text-sm font-medium text-ink hover:bg-canvas">
+                Links
+            </a>
+        @endif
     </div>
 
     {{-- Details --}}

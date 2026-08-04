@@ -29,6 +29,34 @@
                     </a>
                 @endif
 
+                @if(auth()->user()?->hasPermission('tasks.view'))
+                    <a href="{{ route('tasks.index') }}" wire:navigate
+                       class="rounded-lg px-3 py-2 text-sm font-medium transition {{ request()->routeIs('tasks.*') ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-canvas hover:text-ink' }}">
+                        Tasks
+                    </a>
+                @endif
+
+                @if(auth()->user()?->hasPermission('articles.view'))
+                    <a href="{{ route('articles.index') }}" wire:navigate
+                       class="rounded-lg px-3 py-2 text-sm font-medium transition {{ request()->routeIs('articles.*') ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-canvas hover:text-ink' }}">
+                        Articles
+                    </a>
+                @endif
+
+                @if(auth()->user()?->hasPermission('links.view'))
+                    <a href="{{ route('links.index') }}" wire:navigate
+                       class="rounded-lg px-3 py-2 text-sm font-medium transition {{ request()->routeIs('links.*') ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-canvas hover:text-ink' }}">
+                        Links
+                    </a>
+                @endif
+
+                @if(auth()->user()?->hasAnyPermission('tasks.approve', 'articles.approve', 'links.approve'))
+                    <a href="{{ route('approvals.queue') }}" wire:navigate
+                       class="rounded-lg px-3 py-2 text-sm font-medium transition {{ request()->routeIs('approvals.*') ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-canvas hover:text-ink' }}">
+                        Approvals
+                    </a>
+                @endif
+
                 @if(auth()->user()?->hasPermission('users.view'))
                     <a href="{{ route('users.index') }}" wire:navigate
                        class="rounded-lg px-3 py-2 text-sm font-medium transition {{ request()->routeIs('users.*') ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-canvas hover:text-ink' }}">
@@ -38,8 +66,15 @@
 
                 @if(auth()->user()?->hasPermission('settings.view'))
                     <a href="{{ route('settings.index') }}" wire:navigate
-                       class="rounded-lg px-3 py-2 text-sm font-medium transition {{ request()->routeIs('settings.*') ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-canvas hover:text-ink' }}">
+                       class="rounded-lg px-3 py-2 text-sm font-medium transition {{ request()->routeIs('settings.index') ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-canvas hover:text-ink' }}">
                         Settings
+                    </a>
+                @endif
+
+                @if(auth()->user()?->hasPermission('task_templates.manage'))
+                    <a href="{{ route('settings.task-templates') }}" wire:navigate
+                       class="rounded-lg px-3 py-2 text-sm font-medium transition {{ request()->routeIs('settings.task-templates') ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-canvas hover:text-ink' }}">
+                        Task templates
                     </a>
                 @endif
             </nav>
@@ -72,6 +107,18 @@
                 <a href="{{ route('dashboard') }}" wire:navigate class="rounded-md px-3 py-1.5 text-sm {{ request()->routeIs('dashboard') ? 'bg-accent-soft text-accent' : 'text-muted' }}">Home</a>
                 @if(auth()->user()?->hasPermission('projects.view'))
                     <a href="{{ route('projects.index') }}" wire:navigate class="rounded-md px-3 py-1.5 text-sm {{ request()->routeIs('projects.*') ? 'bg-accent-soft text-accent' : 'text-muted' }}">Projects</a>
+                @endif
+                @if(auth()->user()?->hasPermission('tasks.view'))
+                    <a href="{{ route('tasks.index') }}" wire:navigate class="rounded-md px-3 py-1.5 text-sm {{ request()->routeIs('tasks.*') ? 'bg-accent-soft text-accent' : 'text-muted' }}">Tasks</a>
+                @endif
+                @if(auth()->user()?->hasPermission('articles.view'))
+                    <a href="{{ route('articles.index') }}" wire:navigate class="rounded-md px-3 py-1.5 text-sm {{ request()->routeIs('articles.*') ? 'bg-accent-soft text-accent' : 'text-muted' }}">Articles</a>
+                @endif
+                @if(auth()->user()?->hasPermission('links.view'))
+                    <a href="{{ route('links.index') }}" wire:navigate class="rounded-md px-3 py-1.5 text-sm {{ request()->routeIs('links.*') ? 'bg-accent-soft text-accent' : 'text-muted' }}">Links</a>
+                @endif
+                @if(auth()->user()?->hasAnyPermission('tasks.approve', 'articles.approve', 'links.approve'))
+                    <a href="{{ route('approvals.queue') }}" wire:navigate class="rounded-md px-3 py-1.5 text-sm {{ request()->routeIs('approvals.*') ? 'bg-accent-soft text-accent' : 'text-muted' }}">Approvals</a>
                 @endif
                 @if(auth()->user()?->hasPermission('users.view'))
                     <a href="{{ route('users.index') }}" wire:navigate class="rounded-md px-3 py-1.5 text-sm {{ request()->routeIs('users.*') ? 'bg-accent-soft text-accent' : 'text-muted' }}">Users</a>

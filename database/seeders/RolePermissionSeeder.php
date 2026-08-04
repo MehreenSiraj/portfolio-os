@@ -27,6 +27,22 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'credentials.view', 'group' => 'credentials', 'label' => 'View credentials'],
             ['name' => 'credentials.manage', 'group' => 'credentials', 'label' => 'Manage credentials'],
             ['name' => 'credentials.reveal', 'group' => 'credentials', 'label' => 'Reveal credential secrets'],
+            // Milestone 3 — Work
+            ['name' => 'tasks.view', 'group' => 'tasks', 'label' => 'View tasks'],
+            ['name' => 'tasks.create', 'group' => 'tasks', 'label' => 'Create tasks'],
+            ['name' => 'tasks.update', 'group' => 'tasks', 'label' => 'Update own tasks'],
+            ['name' => 'tasks.assign', 'group' => 'tasks', 'label' => 'Assign tasks'],
+            ['name' => 'tasks.approve', 'group' => 'tasks', 'label' => 'Approve tasks'],
+            ['name' => 'tasks.submit', 'group' => 'tasks', 'label' => 'Submit tasks'],
+            ['name' => 'articles.view', 'group' => 'articles', 'label' => 'View articles'],
+            ['name' => 'articles.create', 'group' => 'articles', 'label' => 'Create articles'],
+            ['name' => 'articles.update', 'group' => 'articles', 'label' => 'Update own articles'],
+            ['name' => 'articles.approve', 'group' => 'articles', 'label' => 'Approve articles'],
+            ['name' => 'links.view', 'group' => 'links', 'label' => 'View links'],
+            ['name' => 'links.create', 'group' => 'links', 'label' => 'Create links'],
+            ['name' => 'links.update', 'group' => 'links', 'label' => 'Update own links'],
+            ['name' => 'links.approve', 'group' => 'links', 'label' => 'Approve links'],
+            ['name' => 'task_templates.manage', 'group' => 'tasks', 'label' => 'Manage task templates'],
         ];
 
         foreach ($permissions as $permission) {
@@ -35,6 +51,26 @@ class RolePermissionSeeder extends Seeder
                 $permission,
             );
         }
+
+        $workView = ['tasks.view', 'articles.view', 'links.view'];
+        $workStaff = [
+            ...$workView,
+            'tasks.update',
+            'tasks.submit',
+            'articles.create',
+            'articles.update',
+            'links.create',
+            'links.update',
+        ];
+        $workSupervisor = [
+            ...$workStaff,
+            'tasks.create',
+            'tasks.assign',
+            'tasks.approve',
+            'articles.approve',
+            'links.approve',
+            'credentials.view',
+        ];
 
         $roles = [
             'admin' => [
@@ -48,6 +84,8 @@ class RolePermissionSeeder extends Seeder
                 'permissions' => [
                     'dashboard.view',
                     'projects.view',
+                    // Read-only work visibility on owned/accessible projects — no write
+                    ...$workView,
                 ],
             ],
             'supervisor' => [
@@ -57,7 +95,7 @@ class RolePermissionSeeder extends Seeder
                     'dashboard.view',
                     'projects.view',
                     'projects.update',
-                    'credentials.view',
+                    ...$workSupervisor,
                 ],
             ],
             'staff' => [
@@ -66,6 +104,7 @@ class RolePermissionSeeder extends Seeder
                 'permissions' => [
                     'dashboard.view',
                     'projects.view',
+                    ...$workStaff,
                 ],
             ],
             'accountant' => [
@@ -74,6 +113,7 @@ class RolePermissionSeeder extends Seeder
                 'permissions' => [
                     'dashboard.view',
                     'projects.view',
+                    // No task workflow per brief
                 ],
             ],
         ];

@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('credentials:check-expiry --notify')->dailyAt('06:00');
+Schedule::command('tasks:generate-recurring')->dailyAt('00:15');

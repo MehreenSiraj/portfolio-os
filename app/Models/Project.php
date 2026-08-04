@@ -26,6 +26,8 @@ class Project extends Model
         'acquisition_cost_paisa',
         'status',
         'notes',
+        'monthly_link_target',
+        'monthly_link_budget_paisa',
     ];
 
     protected function casts(): array
@@ -34,6 +36,8 @@ class Project extends Model
             'start_date' => 'date',
             'acquisition_cost_paisa' => 'integer',
             'status' => ProjectStatus::class,
+            'monthly_link_target' => 'integer',
+            'monthly_link_budget_paisa' => 'integer',
         ];
     }
 
@@ -61,6 +65,26 @@ class Project extends Model
         return $this->morphMany(Media::class, 'mediable');
     }
 
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(Task::class);
+    }
+
+    public function articles(): HasMany
+    {
+        return $this->hasMany(Article::class);
+    }
+
+    public function links(): HasMany
+    {
+        return $this->hasMany(Link::class);
+    }
+
+    public function expenses(): HasMany
+    {
+        return $this->hasMany(Expense::class);
+    }
+
     /**
      * Month's revenue in paisa. Stub until Money milestone.
      */
@@ -70,12 +94,21 @@ class Project extends Model
     }
 
     /**
-     * Month's cost in paisa. Uses acquisition cost as placeholder until Money.
-     * Portfolio list shows 0 for recurring month cost until M5.
+     * Month's cost in paisa from auto-created work expenses (M3 hooks).
+     * Full shared-cost P&L lands in M5.
      */
     public function monthCostPaisa(): int
     {
-        return 0;
+        if (! Schema::hasTable('expenses')) {
+            return 0;
+        }
+
+        $start = now('UTC')->startOfMonth()->toDateString();
+        $end = now('UTC')->endOfMonth()->toDateString();
+
+        return (int) $this->expenses()
+            ->whereBetween('expense_date', [$start, $end])
+            ->sum('amount_paisa');
     }
 
     public function monthProfitPaisa(): int
@@ -84,16 +117,21 @@ class Project extends Model
     }
 
     /**
-     * Open tasks count. Stub until Work milestone.
+     * Open (non-approved) tasks for this project.
      */
     public function openTasksCount(): int
     {
-        if (Schema::hasTable('tasks')) {
-            // Reserved for M3
+        if (! Schema::hasTable('tasks')) {
             return 0;
         }
 
-        return 0;
+        return (int) $this->tasks()
+            ->open()
+            ->where(function ($q) {
+                $q->where('is_recurrence_source', false)
+                    ->orWhereNull('is_recurrence_source');
+            })
+            ->count();
     }
 
     public function ownershipShareTotalBps(): int

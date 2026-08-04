@@ -12,7 +12,9 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
             SettingsSeeder::class,
             AdminUserSeeder::class,
+            TaskTemplateSeeder::class,
             DemoPortfolioSeeder::class,
+            DemoWorkSeeder::class,
         ]);
     }
 }

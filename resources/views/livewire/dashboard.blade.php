@@ -3,9 +3,63 @@
         <p class="font-mono text-[11px] tracking-[0.16em] text-muted uppercase">Overview</p>
         <h1 class="mt-2 text-3xl font-semibold tracking-tight text-ink">Home</h1>
         <p class="mt-2 text-muted">
-            Portfolio pulse across projects and vault expiry. Welcome, {{ auth()->user()->name }}.
+            Portfolio pulse, today’s work, and approvals. Welcome, {{ auth()->user()->name }}.
         </p>
     </div>
+
+    @if ($canSeeApprovals || $canSeeTasks)
+        <div class="mb-8 grid gap-4 lg:grid-cols-2">
+            @if ($canSeeApprovals)
+                <div class="rounded-xl border border-line bg-surface p-5">
+                    <div class="mb-3 flex items-center justify-between">
+                        <h2 class="text-base font-semibold">Awaiting my approval</h2>
+                        <a href="{{ route('approvals.queue') }}" wire:navigate class="text-sm font-medium text-accent hover:underline">
+                            Queue ({{ $awaitingCount }})
+                        </a>
+                    </div>
+                    @if ($awaitingMyApproval->isEmpty())
+                        <p class="text-sm text-muted">Nothing waiting on you.</p>
+                    @else
+                        <ul class="divide-y divide-line">
+                            @foreach ($awaitingMyApproval as $row)
+                                <li class="flex items-center justify-between gap-3 py-2.5 text-sm">
+                                    <div class="min-w-0">
+                                        <p class="truncate font-medium">{{ $row['label'] }}</p>
+                                        <p class="text-xs text-muted">{{ $row['type'] }} · {{ $row['project'] }}</p>
+                                    </div>
+                                    <a href="{{ $row['url'] }}" wire:navigate class="shrink-0 text-accent hover:underline">Review</a>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </div>
+            @endif
+
+            @if ($canSeeTasks)
+                <div class="rounded-xl border border-line bg-surface p-5">
+                    <div class="mb-3 flex items-center justify-between">
+                        <h2 class="text-base font-semibold">My tasks due today</h2>
+                        <a href="{{ route('tasks.index', ['mineOnly' => '1']) }}" wire:navigate class="text-sm font-medium text-accent hover:underline">All mine</a>
+                    </div>
+                    @if ($myTasksDueToday->isEmpty())
+                        <p class="text-sm text-muted">No tasks due today.</p>
+                    @else
+                        <ul class="divide-y divide-line">
+                            @foreach ($myTasksDueToday as $task)
+                                <li class="flex items-center justify-between gap-3 py-2.5 text-sm">
+                                    <div class="min-w-0">
+                                        <a href="{{ route('tasks.show', $task) }}" wire:navigate class="truncate font-medium hover:text-accent">{{ $task->title }}</a>
+                                        <p class="text-xs text-muted">{{ $task->project?->domain }}</p>
+                                    </div>
+                                    <x-badge tone="warn">{{ $task->status->label() }}</x-badge>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </div>
+            @endif
+        </div>
+    @endif
 
     @if ($canViewProjects)
         <div class="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -14,13 +68,12 @@
                 <p class="mt-2 text-3xl font-semibold tracking-tight">{{ $totalProjects }}</p>
             </div>
             <div class="rounded-xl border border-line bg-surface px-5 py-4">
-                <p class="font-mono text-[11px] tracking-wide text-muted uppercase">Month revenue</p>
-                <p class="mt-2 text-3xl font-semibold tracking-tight">{{ number_format($monthRevenuePlaceholder / 100, 0) }}</p>
-                <p class="mt-1 text-xs text-muted">PKR · wired for M5</p>
+                <p class="font-mono text-[11px] tracking-wide text-muted uppercase">Open tasks</p>
+                <p class="mt-2 text-3xl font-semibold tracking-tight">{{ $openTasksPortfolio }}</p>
             </div>
             <div class="rounded-xl border border-line bg-surface px-5 py-4">
-                <p class="font-mono text-[11px] tracking-wide text-muted uppercase">Month cost</p>
-                <p class="mt-2 text-3xl font-semibold tracking-tight">{{ number_format($monthCostPlaceholder / 100, 0) }}</p>
+                <p class="font-mono text-[11px] tracking-wide text-muted uppercase">Month revenue</p>
+                <p class="mt-2 text-3xl font-semibold tracking-tight">{{ number_format($monthRevenuePlaceholder / 100, 0) }}</p>
                 <p class="mt-1 text-xs text-muted">PKR · wired for M5</p>
             </div>
             <div class="rounded-xl border border-line bg-surface px-5 py-4">
@@ -59,13 +112,16 @@
                                 <a href="{{ route('projects.show', $project) }}" wire:navigate class="font-medium text-ink hover:text-accent">
                                     {{ $project->domain }}
                                 </a>
-                                <x-badge :tone="match($project->status->value) {
-                                    'monetized' => 'success',
-                                    'paused', 'sold' => 'warn',
-                                    default => 'accent',
-                                }">
-                                    {{ $project->status->label() }}
-                                </x-badge>
+                                <div class="flex items-center gap-2">
+                                    <span class="font-mono text-xs text-muted">{{ $project->openTasksCount() }} open</span>
+                                    <x-badge :tone="match($project->status->value) {
+                                        'monetized' => 'success',
+                                        'paused', 'sold' => 'warn',
+                                        default => 'accent',
+                                    }">
+                                        {{ $project->status->label() }}
+                                    </x-badge>
+                                </div>
                             </li>
                         @endforeach
                     </ul>

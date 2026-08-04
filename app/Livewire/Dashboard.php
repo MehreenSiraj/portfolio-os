@@ -2,9 +2,15 @@
 
 namespace App\Livewire;
 
+use App\Enums\ArticleStatus;
+use App\Enums\LinkWorkflowStatus;
 use App\Enums\ProjectStatus;
+use App\Enums\TaskStatus;
+use App\Models\Article;
 use App\Models\Credential;
+use App\Models\Link;
 use App\Models\Project;
+use App\Models\Task;
 use App\Support\AppSettings;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
@@ -55,6 +61,68 @@ class Dashboard extends Component
             ? (clone $projectsQuery)->orderByDesc('updated_at')->limit(5)->get()
             : collect();
 
+        $tz = AppSettings::get('display_timezone', 'Asia/Karachi');
+        $todayLocal = now($tz)->toDateString();
+        // due_date is a date column (no time); compare to local calendar date string
+        $myTasksDueToday = collect();
+        if ($user?->hasPermission('tasks.view')) {
+            $myTasksDueToday = Task::query()
+                ->with('project')
+                ->accessibleBy($user)
+                ->where('assigned_to', $user->id)
+                ->whereDate('due_date', $todayLocal)
+                ->where('status', '!=', TaskStatus::Approved->value)
+                ->where(fn ($q) => $q->where('is_recurrence_source', false)->orWhereNull('is_recurrence_source'))
+                ->orderBy('due_date')
+                ->limit(10)
+                ->get();
+        }
+
+        $awaitingMyApproval = collect();
+        $awaitingCount = 0;
+        if ($user?->hasAnyPermission('tasks.approve', 'articles.approve', 'links.approve')) {
+            if ($user->hasPermission('tasks.approve')) {
+                $tasks = Task::query()->with('project')->accessibleBy($user)->awaitingApproval()->limit(5)->get()
+                    ->map(fn (Task $t) => [
+                        'type' => 'Task',
+                        'label' => $t->title,
+                        'project' => $t->project?->domain,
+                        'url' => route('approvals.queue'),
+                    ]);
+                $awaitingMyApproval = $awaitingMyApproval->merge($tasks);
+                $awaitingCount += Task::query()->accessibleBy($user)->awaitingApproval()->count();
+            }
+            if ($user->hasPermission('articles.approve')) {
+                $arts = Article::query()->with('project')->accessibleBy($user)->awaitingApproval()->limit(5)->get()
+                    ->map(fn (Article $a) => [
+                        'type' => 'Article',
+                        'label' => $a->title,
+                        'project' => $a->project?->domain,
+                        'url' => route('approvals.queue'),
+                    ]);
+                $awaitingMyApproval = $awaitingMyApproval->merge($arts);
+                $awaitingCount += Article::query()->accessibleBy($user)->awaitingApproval()->count();
+            }
+            if ($user->hasPermission('links.approve')) {
+                $lnks = Link::query()->with('project')->accessibleBy($user)->awaitingApproval()->limit(5)->get()
+                    ->map(fn (Link $l) => [
+                        'type' => 'Link',
+                        'label' => $l->source_domain,
+                        'project' => $l->project?->domain,
+                        'url' => route('approvals.queue'),
+                    ]);
+                $awaitingMyApproval = $awaitingMyApproval->merge($lnks);
+                $awaitingCount += Link::query()->accessibleBy($user)->awaitingApproval()->count();
+            }
+            $awaitingMyApproval = $awaitingMyApproval->take(8);
+        }
+
+        $openTasksPortfolio = $canViewProjects
+            ? (int) Task::query()->accessibleBy($user)->open()
+                ->where(fn ($q) => $q->where('is_recurrence_source', false)->orWhereNull('is_recurrence_source'))
+                ->count()
+            : 0;
+
         return view('livewire.dashboard', [
             'totalProjects' => $totalProjects,
             'byStatus' => $byStatus,
@@ -66,6 +134,12 @@ class Dashboard extends Component
             'monthCostPlaceholder' => 0,
             'canViewProjects' => $canViewProjects,
             'canViewCredentials' => (bool) $user?->hasPermission('credentials.view'),
+            'myTasksDueToday' => $myTasksDueToday,
+            'awaitingMyApproval' => $awaitingMyApproval,
+            'awaitingCount' => $awaitingCount,
+            'openTasksPortfolio' => $openTasksPortfolio,
+            'canSeeApprovals' => (bool) $user?->hasAnyPermission('tasks.approve', 'articles.approve', 'links.approve'),
+            'canSeeTasks' => (bool) $user?->hasPermission('tasks.view'),
         ]);
     }
 }
