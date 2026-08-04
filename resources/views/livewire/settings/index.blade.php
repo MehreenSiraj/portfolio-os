@@ -50,7 +50,7 @@
                 label="USD → PKR rate (placeholder)"
                 wire:model="fx_usd_to_pkr"
                 error="{{ $errors->first('fx_usd_to_pkr') }}"
-                hint="Stored as string/JSON until money module uses integer rates."
+                hint="Default rate when recording new USD revenue. Each row freezes its own fx_rate + amount_pkr."
             />
             <div class="space-y-1.5">
                 <label class="block text-sm font-medium">Note</label>

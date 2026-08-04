@@ -89,6 +89,45 @@
                     </a>
                 @endif
 
+                @if(auth()->user()?->hasAnyPermission('revenue.view', 'expenses.view', 'pnl.view', 'distributions.view', 'partners.view', 'partners.statement'))
+                    <p class="mt-4 px-3 font-mono text-[10px] tracking-[0.14em] text-muted uppercase">Money</p>
+                @endif
+
+                @if(auth()->user()?->hasPermission('revenue.view'))
+                    <a href="{{ route('money.revenues') }}" wire:navigate
+                       class="rounded-lg px-3 py-2 text-sm font-medium transition {{ request()->routeIs('money.revenues') ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-canvas hover:text-ink' }}">
+                        Revenue
+                    </a>
+                @endif
+
+                @if(auth()->user()?->hasPermission('expenses.view'))
+                    <a href="{{ route('money.expenses') }}" wire:navigate
+                       class="rounded-lg px-3 py-2 text-sm font-medium transition {{ request()->routeIs('money.expenses') ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-canvas hover:text-ink' }}">
+                        Expenses
+                    </a>
+                @endif
+
+                @if(auth()->user()?->hasPermission('pnl.view'))
+                    <a href="{{ route('money.pnl') }}" wire:navigate
+                       class="rounded-lg px-3 py-2 text-sm font-medium transition {{ request()->routeIs('money.pnl') ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-canvas hover:text-ink' }}">
+                        P&amp;L
+                    </a>
+                @endif
+
+                @if(auth()->user()?->hasPermission('distributions.view'))
+                    <a href="{{ route('money.distributions') }}" wire:navigate
+                       class="rounded-lg px-3 py-2 text-sm font-medium transition {{ request()->routeIs('money.distributions*') ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-canvas hover:text-ink' }}">
+                        Distributions
+                    </a>
+                @endif
+
+                @if(auth()->user()?->hasAnyPermission('partners.view', 'partners.statement'))
+                    <a href="{{ auth()->user()->hasPermission('partners.view') ? route('money.partners') : route('money.partners.statement') }}" wire:navigate
+                       class="rounded-lg px-3 py-2 text-sm font-medium transition {{ request()->routeIs('money.partners*') ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-canvas hover:text-ink' }}">
+                        Partners
+                    </a>
+                @endif
+
                 @if(auth()->user()?->hasPermission('users.view'))
                     <a href="{{ route('users.index') }}" wire:navigate
                        class="rounded-lg px-3 py-2 text-sm font-medium transition {{ request()->routeIs('users.*') ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-canvas hover:text-ink' }}">

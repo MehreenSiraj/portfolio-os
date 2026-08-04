@@ -9,6 +9,13 @@ use App\Livewire\Auth\Login;
 use App\Livewire\Auth\ResetPassword;
 use App\Livewire\Dashboard;
 use App\Livewire\Links\Index as LinksIndex;
+use App\Livewire\Money\DistributionShow;
+use App\Livewire\Money\DistributionsIndex;
+use App\Livewire\Money\ExpensesIndex;
+use App\Livewire\Money\PartnersIndex;
+use App\Livewire\Money\PartnerStatement;
+use App\Livewire\Money\ProfitLoss;
+use App\Livewire\Money\RevenuesIndex;
 use App\Livewire\People\AttendanceIndex;
 use App\Livewire\People\LoginHistoryIndex;
 use App\Livewire\People\ScorecardShow;
@@ -95,4 +102,33 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
     Route::get('/people/scorecard', ScorecardShow::class)
         ->middleware(EnsurePermission::class.':scorecards.view')
         ->name('people.scorecard');
+
+    // Milestone 5 — Money
+    Route::get('/money/revenues', RevenuesIndex::class)
+        ->middleware(EnsurePermission::class.':revenue.view')
+        ->name('money.revenues');
+
+    Route::get('/money/expenses', ExpensesIndex::class)
+        ->middleware(EnsurePermission::class.':expenses.view')
+        ->name('money.expenses');
+
+    Route::get('/money/pnl', ProfitLoss::class)
+        ->middleware(EnsurePermission::class.':pnl.view')
+        ->name('money.pnl');
+
+    Route::get('/money/distributions', DistributionsIndex::class)
+        ->middleware(EnsurePermission::class.':distributions.view')
+        ->name('money.distributions');
+
+    Route::get('/money/distributions/{run}', DistributionShow::class)
+        ->middleware(EnsurePermission::class.':distributions.view')
+        ->name('money.distributions.show');
+
+    Route::get('/money/partners', PartnersIndex::class)
+        ->middleware(EnsurePermission::class.':partners.view')
+        ->name('money.partners');
+
+    Route::get('/money/partners/statement/{user?}', PartnerStatement::class)
+        ->middleware(EnsurePermission::class.':partners.statement')
+        ->name('money.partners.statement');
 });

@@ -169,8 +169,12 @@ class Dashboard extends Component
             'expiring' => $expiring,
             'thresholds' => $thresholds,
             'recentProjects' => $recentProjects,
-            'monthRevenuePlaceholder' => 0,
-            'monthCostPlaceholder' => 0,
+            'monthRevenuePlaceholder' => $canViewProjects
+                ? (int) (clone $projectsQuery)->get()->sum(fn ($p) => $p->monthRevenuePaisa())
+                : 0,
+            'monthCostPlaceholder' => $canViewProjects
+                ? (int) (clone $projectsQuery)->get()->sum(fn ($p) => $p->monthCostPaisa())
+                : 0,
             'canViewProjects' => $canViewProjects,
             'canViewCredentials' => (bool) $user?->hasPermission('credentials.view'),
             'myTasksDueToday' => $myTasksDueToday,

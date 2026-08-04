@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             DemoPortfolioSeeder::class,
             DemoWorkSeeder::class,
             DemoPeopleSeeder::class,
+            DemoMoneySeeder::class,
         ]);
     }
 }

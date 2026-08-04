@@ -73,6 +73,34 @@ class User extends Authenticatable
         return $this->hasMany(PayRate::class);
     }
 
+    public function partnerProfile(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(PartnerProfile::class);
+    }
+
+    public function partnerLedgerEntries(): HasMany
+    {
+        return $this->hasMany(PartnerLedgerEntry::class);
+    }
+
+    /**
+     * Portfolio-wide finance (admin or accountant money roles).
+     * Enables all-project scope for revenue/expense/PnL queries.
+     */
+    public function hasPortfolioFinanceAccess(): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        return $this->hasAnyPermission(
+            'revenue.manage',
+            'expenses.manage',
+            'distributions.manage',
+            'distributions.approve',
+        );
+    }
+
     /**
      * Effective permissions = union of all assigned role permissions.
      */
@@ -133,7 +161,7 @@ class User extends Authenticatable
      */
     public function accessibleProjectIds(): array
     {
-        if ($this->isAdmin()) {
+        if ($this->isAdmin() || $this->hasPortfolioFinanceAccess()) {
             return Project::query()->pluck('id')->map(fn ($id) => (int) $id)->all();
         }
 

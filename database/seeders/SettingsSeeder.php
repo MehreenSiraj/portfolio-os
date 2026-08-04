@@ -18,8 +18,8 @@ class SettingsSeeder extends Seeder
             'late_arrival_hour' => ['value' => 10],
             'fx_defaults' => [
                 'value' => [
-                    'USD_to_PKR' => null,
-                    'note' => 'Set rates when recording multi-currency amounts (Milestone 5).',
+                    'USD_to_PKR' => '278.50',
+                    'note' => 'Default USD→PKR used when recording new revenue; historical rows keep their own frozen rate.',
                 ],
             ],
             'credential_expiry_thresholds' => [

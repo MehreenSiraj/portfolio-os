@@ -1,6 +1,6 @@
 # PinSA Portfolio — Internal Website Portfolio Management System
 
-Through **Milestone 4** (People: attendance, login history, work logs, scorecards).
+Through **Milestone 5** (Money: revenue, expenses, shared allocation, P&L, distributions, partner ledger).
 
 ## Requirements
 
@@ -32,15 +32,16 @@ Open http://127.0.0.1:8000 and sign in.
 
 ## Default accounts (seed)
 
-| Role       | Email                   | Password |
-|------------|-------------------------|----------|
-| Admin      | admin@example.com       | password |
-| Partner    | partner@example.com     | password |
-| Supervisor | supervisor@example.com  | password |
-| Staff      | staff@example.com       | password |
+| Role         | Email                      | Password |
+|--------------|----------------------------|----------|
+| Admin        | admin@example.com          | password |
+| Partner      | partner@example.com        | password |
+| Supervisor   | supervisor@example.com     | password |
+| Staff        | staff@example.com          | password |
+| Accountant   | accountant@example.com     | password |
 
-Demo projects: `alpha-demo.test`, `beta-demo.test` (with vault credentials + expiring SSL).  
-People demo: login history, leave day, work logs, pay rates on staff, scorecard fixture work.
+Demo projects: `alpha-demo.test`, `beta-demo.test` (credentials + work + people fixtures).  
+Money demo: sample revenues (current + prior month), shared SaaS expense, direct hosting, partner capital, draft distribution for prior month.
 
 Change seed passwords after first login in any shared environment.
 
@@ -48,17 +49,6 @@ Change seed passwords after first login in any shared environment.
 
 ```bash
 php artisan schedule:run
-# daily: credentials:check-expiry --notify
-php artisan queue:work --stop-when-empty
-# optional catch-up: attendance:sync --month=Y-m
 ```
 
-## Tests
-
-```bash
-php artisan test
-```
-
-## Drivers (Hostinger-safe)
-
-`.env.example` sets SESSION/CACHE/QUEUE to file or database — never Redis for production on shared hosting.
+Includes: credential expiry, recurring tasks, recurring expenses (`expenses:generate-recurring`). Pair with `queue:work --stop-when-empty` if using database queue.

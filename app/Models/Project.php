@@ -85,35 +85,43 @@ class Project extends Model
         return $this->hasMany(Expense::class);
     }
 
-    /**
-     * Month's revenue in paisa. Stub until Money milestone.
-     */
-    public function monthRevenuePaisa(): int
+    public function revenues(): HasMany
     {
-        return 0;
+        return $this->hasMany(Revenue::class);
     }
 
     /**
-     * Month's cost in paisa from auto-created work expenses (M3 hooks).
-     * Full shared-cost P&L lands in M5.
+     * Month's revenue in paisa (base reporting currency).
      */
-    public function monthCostPaisa(): int
+    public function monthRevenuePaisa(?string $yearMonth = null): int
     {
-        if (! Schema::hasTable('expenses')) {
+        if (! Schema::hasTable('revenues')) {
             return 0;
         }
 
-        $start = now('UTC')->startOfMonth()->toDateString();
-        $end = now('UTC')->endOfMonth()->toDateString();
+        $month = $yearMonth
+            ? \Carbon\Carbon::parse(strlen($yearMonth) === 7 ? $yearMonth.'-01' : $yearMonth)->startOfMonth()->toDateString()
+            : now('UTC')->startOfMonth()->toDateString();
 
-        return (int) $this->expenses()
-            ->whereBetween('expense_date', [$start, $end])
-            ->sum('amount_paisa');
+        return (int) $this->revenues()
+            ->whereDate('period_month', $month)
+            ->sum('amount_pkr_paisa');
     }
 
-    public function monthProfitPaisa(): int
+    /**
+     * Month's cost: direct expenses + share of shared costs.
+     */
+    public function monthCostPaisa(?string $yearMonth = null): int
     {
-        return $this->monthRevenuePaisa() - $this->monthCostPaisa();
+        $row = app(\App\Services\ProfitAndLossService::class)
+            ->projectRowForMonth($this, $yearMonth ?? now('UTC')->format('Y-m'));
+
+        return (int) $row['total_expense_paisa'];
+    }
+
+    public function monthProfitPaisa(?string $yearMonth = null): int
+    {
+        return $this->monthRevenuePaisa($yearMonth) - $this->monthCostPaisa($yearMonth);
     }
 
     /**

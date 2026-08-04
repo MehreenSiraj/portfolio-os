@@ -1,0 +1,101 @@
+<?php
+
+namespace App\Livewire\Money;
+
+use App\Models\PartnerLedgerEntry;
+use App\Models\PartnerProfile;
+use App\Models\User;
+use App\Policies\FinancePolicy;
+use App\Services\CsvExportService;
+use App\Services\PartnerLedgerService;
+use App\Support\Money;
+use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
+use Livewire\Component;
+use Livewire\WithPagination;
+
+#[Layout('layouts.app')]
+#[Title('Partners')]
+class PartnersIndex extends Component
+{
+    use WithPagination;
+
+    public bool $showCapital = false;
+
+    public string $user_id = '';
+
+    public string $amount = '';
+
+    public string $entry_type = 'capital_in';
+
+    public string $notes = '';
+
+    public function mount(): void
+    {
+        abort_unless(FinancePolicy::viewPartners(Auth::user()), 403);
+    }
+
+    public function postEntry(PartnerLedgerService $ledger): void
+    {
+        abort_unless(FinancePolicy::managePartners(Auth::user()), 403);
+        $this->validate([
+            'user_id' => ['required', 'integer', 'exists:users,id'],
+            'amount' => ['required', 'numeric', 'min:0.01'],
+            'entry_type' => ['required', 'in:capital_in,withdrawal'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $paisa = Money::pkrToPaisa($this->amount);
+        if ($this->entry_type === 'capital_in') {
+            $ledger->recordCapitalIn((int) $this->user_id, $paisa, Auth::user(), $this->notes ?: null);
+            session()->flash('status', 'Capital contribution recorded.');
+        } else {
+            $ledger->recordWithdrawal((int) $this->user_id, $paisa, Auth::user(), $this->notes ?: null);
+            session()->flash('status', 'Withdrawal recorded.');
+        }
+
+        $this->showCapital = false;
+        $this->amount = '';
+        $this->notes = '';
+    }
+
+    public function exportCsv(CsvExportService $csv)
+    {
+        abort_unless(FinancePolicy::export(Auth::user()), 403);
+        $rows = PartnerLedgerEntry::query()->with('user')->orderBy('id')->get()
+            ->map(fn (PartnerLedgerEntry $e) => [
+                $e->id,
+                $e->user?->name,
+                $e->type->value,
+                Money::paisaToMajor((int) $e->amount_paisa),
+                Money::paisaToMajor((int) $e->balance_after_paisa),
+                $e->entry_date->format('Y-m-d'),
+                $e->description,
+            ]);
+
+        return $csv->download('partner-ledger.csv', [
+            'id', 'partner', 'type', 'amount_pkr', 'balance_after_pkr', 'date', 'description',
+        ], $rows);
+    }
+
+    public function render(PartnerLedgerService $ledger)
+    {
+        $partners = User::query()
+            ->whereHas('roles', fn ($q) => $q->where('name', 'partner'))
+            ->orWhereHas('ownedProjects')
+            ->orderBy('name')
+            ->get()
+            ->unique('id')
+            ->values();
+
+        $balances = $partners->mapWithKeys(fn (User $u) => [$u->id => $ledger->balanceFor($u->id)]);
+
+        return view('livewire.money.partners-index', [
+            'partners' => $partners,
+            'balances' => $balances,
+            'canManage' => FinancePolicy::managePartners(Auth::user()),
+            'profiles' => PartnerProfile::query()->get()->keyBy('user_id'),
+        ]);
+    }
+}

@@ -51,6 +51,19 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'work_logs.manage', 'group' => 'people', 'label' => 'Write own work logs'],
             ['name' => 'scorecards.view', 'group' => 'people', 'label' => 'View performance scorecards'],
             ['name' => 'people.view_team', 'group' => 'people', 'label' => 'View team people data'],
+            // Milestone 5 — Money
+            ['name' => 'revenue.view', 'group' => 'money', 'label' => 'View revenue'],
+            ['name' => 'revenue.manage', 'group' => 'money', 'label' => 'Manage revenue'],
+            ['name' => 'expenses.view', 'group' => 'money', 'label' => 'View expenses'],
+            ['name' => 'expenses.manage', 'group' => 'money', 'label' => 'Manage expenses'],
+            ['name' => 'pnl.view', 'group' => 'money', 'label' => 'View profit & loss'],
+            ['name' => 'distributions.view', 'group' => 'money', 'label' => 'View distributions'],
+            ['name' => 'distributions.manage', 'group' => 'money', 'label' => 'Create distribution drafts'],
+            ['name' => 'distributions.approve', 'group' => 'money', 'label' => 'Approve / void distributions'],
+            ['name' => 'partners.view', 'group' => 'money', 'label' => 'View partners'],
+            ['name' => 'partners.manage', 'group' => 'money', 'label' => 'Manage partner capital & payouts'],
+            ['name' => 'partners.statement', 'group' => 'money', 'label' => 'View own partner statement'],
+            ['name' => 'finance.export', 'group' => 'money', 'label' => 'Export finance CSVs'],
         ];
 
         foreach ($permissions as $permission) {
@@ -93,6 +106,29 @@ class RolePermissionSeeder extends Seeder
             'attendance.manage',
         ];
 
+        $moneyRead = [
+            'revenue.view',
+            'expenses.view',
+            'pnl.view',
+            'distributions.view',
+            'partners.statement',
+            'finance.export',
+        ];
+        $moneyFull = [
+            'revenue.view',
+            'revenue.manage',
+            'expenses.view',
+            'expenses.manage',
+            'pnl.view',
+            'distributions.view',
+            'distributions.manage',
+            'distributions.approve',
+            'partners.view',
+            'partners.manage',
+            'partners.statement',
+            'finance.export',
+        ];
+
         $roles = [
             'admin' => [
                 'label' => 'Admin',
@@ -108,6 +144,8 @@ class RolePermissionSeeder extends Seeder
                     // Read-only work visibility on owned/accessible projects — no write
                     ...$workView,
                     ...$peopleSelf,
+                    // Equity finance read-only
+                    ...$moneyRead,
                 ],
             ],
             'supervisor' => [
@@ -133,11 +171,11 @@ class RolePermissionSeeder extends Seeder
             ],
             'accountant' => [
                 'label' => 'Accountant',
-                'description' => 'Finance operations',
+                'description' => 'Finance operations (no credentials / task workflow)',
                 'permissions' => [
                     'dashboard.view',
                     'projects.view',
-                    // No task workflow per brief
+                    ...$moneyFull,
                 ],
             ],
         ];

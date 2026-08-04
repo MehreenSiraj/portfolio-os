@@ -10,3 +10,4 @@ Artisan::command('inspire', function () {
 
 Schedule::command('credentials:check-expiry --notify')->dailyAt('06:00');
 Schedule::command('tasks:generate-recurring')->dailyAt('00:15');
+Schedule::command('expenses:generate-recurring')->dailyAt('00:30');
