@@ -102,8 +102,10 @@
                         <td class="px-4 py-3 text-right font-mono text-xs">{{ number_format($row->amount_pkr_paisa / 100, 2) }}</td>
                         <td class="px-4 py-3 text-right">
                             @if ($canManage)
-                                <button type="button" class="text-xs text-accent" wire:click="edit({{ $row->id }})">Edit</button>
-                                <button type="button" class="ml-2 text-xs text-danger" wire:click="delete({{ $row->id }})" wire:confirm="Soft-delete this revenue?">Delete</button>
+                                <div class="inline-flex justify-end gap-1">
+                                    <x-button type="button" size="sm" variant="ghost" wire:click="edit({{ $row->id }})">Edit</x-button>
+                                    <x-button type="button" size="sm" variant="ghost" class="text-danger hover:text-danger" wire:click="delete({{ $row->id }})" wire:confirm="Soft-delete this revenue?">Delete</x-button>
+                                </div>
                             @endif
                         </td>
                     </tr>

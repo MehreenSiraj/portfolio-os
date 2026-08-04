@@ -160,8 +160,10 @@
                         </td>
                         <td class="px-4 py-3 text-right">
                             @if ($canManage)
-                                <button type="button" class="text-xs text-accent" wire:click="edit({{ $e->id }})">Edit</button>
-                                <button type="button" class="ml-2 text-xs text-danger" wire:click="delete({{ $e->id }})" wire:confirm="Soft-delete?">Delete</button>
+                                <div class="inline-flex justify-end gap-1">
+                                    <x-button type="button" size="sm" variant="ghost" wire:click="edit({{ $e->id }})">Edit</x-button>
+                                    <x-button type="button" size="sm" variant="ghost" class="text-danger hover:text-danger" wire:click="delete({{ $e->id }})" wire:confirm="Soft-delete?">Delete</x-button>
+                                </div>
                             @endif
                         </td>
                     </tr>

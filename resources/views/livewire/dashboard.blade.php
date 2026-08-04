@@ -107,7 +107,7 @@
             <div class="rounded-xl border border-line bg-surface px-5 py-4">
                 <p class="font-mono text-[11px] tracking-wide text-muted uppercase">Month revenue</p>
                 <p class="mt-2 text-3xl font-semibold tracking-tight">{{ number_format($monthRevenuePlaceholder / 100, 0) }}</p>
-                <p class="mt-1 text-xs text-muted">PKR · wired for M5</p>
+                <p class="mt-1 text-xs text-muted">PKR · this month</p>
             </div>
             <div class="rounded-xl border border-line bg-surface px-5 py-4">
                 <p class="font-mono text-[11px] tracking-wide text-muted uppercase">Expiring vault</p>
