@@ -65,10 +65,12 @@
                 <label class="flex items-center gap-2 text-sm">
                     <input type="checkbox" wire:model="is_paid" class="rounded border-line" /> Paid
                 </label>
-                <div>
-                    <label class="text-sm font-medium">Receipt</label>
-                    <input type="file" wire:model="receipt" class="mt-1 block w-full text-sm" />
-                </div>
+                <x-file-input
+                    label="Receipt"
+                    wire:model="receipt"
+                    :filename="$receipt?->getClientOriginalName()"
+                    :error="$errors->first('receipt')"
+                />
             </div>
             <div class="mt-4 flex gap-2">
                 <x-button type="button" wire:click="save">Save</x-button>

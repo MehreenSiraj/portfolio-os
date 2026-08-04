@@ -63,8 +63,14 @@
         <div class="mb-8 rounded-xl border border-line bg-surface p-5">
             <h2 class="text-sm font-semibold">Import AdSense CSV</h2>
             <p class="mt-1 text-xs text-muted">Columns: domain, month (YYYY-MM), amount_usd [, fx_rate]</p>
-            <input type="file" wire:model="importFile" accept=".csv,text/csv" class="mt-3 text-sm" />
-            @error('importFile') <p class="text-xs text-danger">{{ $message }}</p> @enderror
+            <x-file-input
+                class="mt-3"
+                wire:model="importFile"
+                accept=".csv,text/csv"
+                :filename="$importFile?->getClientOriginalName()"
+                :error="$errors->first('importFile')"
+                hint="CSV only"
+            />
             <div class="mt-4 flex gap-2">
                 <x-button type="button" wire:click="import">Import</x-button>
                 <x-button type="button" variant="ghost" wire:click="$set('showImport', false)">Cancel</x-button>

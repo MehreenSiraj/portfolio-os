@@ -327,13 +327,16 @@
         </div>
 
         @can('update', $project)
-            <form wire:submit="uploadFile" class="mb-4 flex flex-wrap items-end gap-3">
-                <div class="flex-1 min-w-[12rem]">
-                    <input type="file" wire:model="upload" class="block w-full text-sm text-muted file:mr-3 file:rounded-lg file:border-0 file:bg-accent-soft file:px-3 file:py-2 file:text-sm file:font-medium file:text-accent">
-                    @error('upload') <p class="mt-1 text-xs text-danger">{{ $message }}</p> @enderror
-                    <div wire:loading wire:target="upload" class="mt-1 text-xs text-muted">Uploading…</div>
+            <form wire:submit="uploadFile" class="mb-5 space-y-3">
+                <x-file-input
+                    wire:model="upload"
+                    :filename="$upload?->getClientOriginalName()"
+                    :error="$errors->first('upload')"
+                    hint="Project files and documents"
+                />
+                <div class="flex justify-end">
+                    <x-button type="submit" size="sm">Upload</x-button>
                 </div>
-                <x-button type="submit" size="sm">Upload</x-button>
             </form>
         @endcan
 

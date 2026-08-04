@@ -101,32 +101,37 @@
     @endif
 
     @if ($canUpdate)
-        <div class="rounded-xl border border-line bg-surface p-5">
+        <div class="rounded-xl border border-line bg-surface p-5 sm:p-6">
             <h2 class="text-sm font-semibold">Evidence</h2>
-            <form wire:submit="uploadEvidence" class="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
-                <div class="flex-1">
-                    <input type="file" wire:model="evidence" class="block w-full text-sm">
-                    @error('evidence') <p class="mt-1 text-xs text-danger">{{ $message }}</p> @enderror
+            <p class="mt-1 text-xs text-muted">Attach screenshots, docs, or other proof for this task.</p>
+            <form wire:submit="uploadEvidence" class="mt-4 space-y-3">
+                <x-file-input
+                    wire:model="evidence"
+                    :filename="$evidence?->getClientOriginalName()"
+                    :error="$errors->first('evidence')"
+                    hint="Max 10 MB"
+                />
+                <div class="flex items-center justify-end gap-2">
+                    <x-button type="submit" size="sm">Upload</x-button>
                 </div>
-                <x-button type="submit" size="sm" variant="secondary">Upload</x-button>
             </form>
-            <ul class="mt-4 divide-y divide-line">
+            <ul class="mt-5 divide-y divide-line border-t border-line pt-1">
                 @forelse ($task->media as $file)
-                    <li class="flex items-center justify-between py-2 text-sm">
-                        <span class="truncate">{{ $file->original_name }}</span>
+                    <li class="flex items-center justify-between gap-3 py-2.5 text-sm">
+                        <span class="min-w-0 truncate font-medium">{{ $file->original_name }}</span>
                         <x-button size="sm" variant="ghost" wire:click="deleteEvidence({{ $file->id }})">Remove</x-button>
                     </li>
                 @empty
-                    <li class="py-2 text-sm text-muted">No evidence yet.</li>
+                    <li class="py-4 text-center text-sm text-muted">No evidence yet.</li>
                 @endforelse
             </ul>
         </div>
     @elseif ($task->media->isNotEmpty())
-        <div class="rounded-xl border border-line bg-surface p-5">
+        <div class="rounded-xl border border-line bg-surface p-5 sm:p-6">
             <h2 class="text-sm font-semibold">Evidence</h2>
-            <ul class="mt-3 space-y-1 text-sm">
+            <ul class="mt-4 space-y-2 text-sm">
                 @foreach ($task->media as $file)
-                    <li>{{ $file->original_name }}</li>
+                    <li class="truncate font-medium">{{ $file->original_name }}</li>
                 @endforeach
             </ul>
         </div>
