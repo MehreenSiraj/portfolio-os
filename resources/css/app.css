@@ -1,0 +1,47 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../vendor/livewire/livewire/dist/**/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@theme {
+    --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+    --color-canvas: #f4f5f7;
+    --color-surface: #ffffff;
+    --color-ink: #14171f;
+    --color-muted: #6b7280;
+    --color-line: #e6e8ec;
+    --color-accent: #0f766e;
+    --color-accent-soft: #ccfbf1;
+    --color-danger: #b91c1c;
+    --color-danger-soft: #fee2e2;
+    --color-success: #047857;
+    --color-success-soft: #d1fae5;
+    --color-warn: #b45309;
+    --color-warn-soft: #fef3c7;
+}
+
+@layer base {
+    html {
+        @apply antialiased;
+        color: var(--color-ink);
+        background: var(--color-canvas);
+    }
+
+    body {
+        min-height: 100vh;
+        font-family: var(--font-sans);
+        background:
+            radial-gradient(1200px 500px at 10% -10%, rgba(15, 118, 110, 0.08), transparent 55%),
+            radial-gradient(900px 400px at 100% 0%, rgba(20, 23, 31, 0.04), transparent 50%),
+            var(--color-canvas);
+    }
+
+    ::selection {
+        background: color-mix(in srgb, var(--color-accent) 22%, white);
+    }
+}
