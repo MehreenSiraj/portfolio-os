@@ -24,6 +24,10 @@ class Index extends Component
 
     public string $fx_note = '';
 
+    public string $credential_expiry_thresholds = '30,14,7';
+
+    public string $credential_expiry_notify_emails = '';
+
     public function mount(): void
     {
         abort_unless(Auth::user()?->hasPermission('settings.view'), 403);
@@ -38,6 +42,16 @@ class Index extends Component
             ? (string) $fx['USD_to_PKR']
             : '';
         $this->fx_note = (string) ($fx['note'] ?? '');
+
+        $thresholds = AppSettings::get('credential_expiry_thresholds', [30, 14, 7]);
+        $this->credential_expiry_thresholds = is_array($thresholds)
+            ? implode(',', $thresholds)
+            : '30,14,7';
+
+        $emails = AppSettings::get('credential_expiry_notify_emails', []);
+        $this->credential_expiry_notify_emails = is_array($emails)
+            ? implode(', ', $emails)
+            : '';
     }
 
     public function save(): void
@@ -51,7 +65,28 @@ class Index extends Component
             'two_factor_required' => ['boolean'],
             'fx_usd_to_pkr' => ['nullable', 'string', 'max:32'],
             'fx_note' => ['nullable', 'string', 'max:500'],
+            'credential_expiry_thresholds' => ['required', 'string', 'max:64'],
+            'credential_expiry_notify_emails' => ['nullable', 'string', 'max:1000'],
         ]);
+
+        $thresholds = collect(explode(',', $validated['credential_expiry_thresholds']))
+            ->map(fn ($v) => (int) trim($v))
+            ->filter(fn ($v) => $v > 0)
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($thresholds === []) {
+            $this->addError('credential_expiry_thresholds', 'Provide at least one positive day threshold.');
+
+            return;
+        }
+
+        $emails = collect(explode(',', $validated['credential_expiry_notify_emails'] ?? ''))
+            ->map(fn ($v) => trim($v))
+            ->filter()
+            ->values()
+            ->all();
 
         AppSettings::set('org_name', $validated['org_name']);
         AppSettings::set('base_currency', strtoupper($validated['base_currency']));
@@ -61,6 +96,8 @@ class Index extends Component
             'USD_to_PKR' => $validated['fx_usd_to_pkr'] !== '' ? $validated['fx_usd_to_pkr'] : null,
             'note' => $validated['fx_note'] ?: 'Set rates when recording multi-currency amounts (Milestone 5).',
         ]);
+        AppSettings::set('credential_expiry_thresholds', $thresholds);
+        AppSettings::set('credential_expiry_notify_emails', $emails);
 
         session()->flash('status', 'Settings saved.');
     }

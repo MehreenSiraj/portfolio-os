@@ -22,6 +22,13 @@
                     Home
                 </a>
 
+                @if(auth()->user()?->hasPermission('projects.view'))
+                    <a href="{{ route('projects.index') }}" wire:navigate
+                       class="rounded-lg px-3 py-2 text-sm font-medium transition {{ request()->routeIs('projects.*') ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-canvas hover:text-ink' }}">
+                        Projects
+                    </a>
+                @endif
+
                 @if(auth()->user()?->hasPermission('users.view'))
                     <a href="{{ route('users.index') }}" wire:navigate
                        class="rounded-lg px-3 py-2 text-sm font-medium transition {{ request()->routeIs('users.*') ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-canvas hover:text-ink' }}">
@@ -63,6 +70,9 @@
 
             <nav class="flex gap-1 overflow-x-auto border-b border-line bg-surface/50 px-3 py-2 md:hidden">
                 <a href="{{ route('dashboard') }}" wire:navigate class="rounded-md px-3 py-1.5 text-sm {{ request()->routeIs('dashboard') ? 'bg-accent-soft text-accent' : 'text-muted' }}">Home</a>
+                @if(auth()->user()?->hasPermission('projects.view'))
+                    <a href="{{ route('projects.index') }}" wire:navigate class="rounded-md px-3 py-1.5 text-sm {{ request()->routeIs('projects.*') ? 'bg-accent-soft text-accent' : 'text-muted' }}">Projects</a>
+                @endif
                 @if(auth()->user()?->hasPermission('users.view'))
                     <a href="{{ route('users.index') }}" wire:navigate class="rounded-md px-3 py-1.5 text-sm {{ request()->routeIs('users.*') ? 'bg-accent-soft text-accent' : 'text-muted' }}">Users</a>
                 @endif

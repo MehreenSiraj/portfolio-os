@@ -1,6 +1,6 @@
 # PinSA Portfolio — Internal Website Portfolio Management System
 
-Milestone 1 (Foundation) only.
+Through **Milestone 2** (Projects & credentials). Later milestones are not built yet.
 
 ## Requirements
 
@@ -30,14 +30,26 @@ php artisan serve
 
 Open http://127.0.0.1:8000 and sign in.
 
-## Default admin
+## Default accounts (seed)
 
-| Field    | Value             |
-|----------|-------------------|
-| Email    | admin@example.com |
-| Password | password          |
+| Role       | Email                   | Password |
+|------------|-------------------------|----------|
+| Admin      | admin@example.com       | password |
+| Partner    | partner@example.com     | password |
+| Supervisor | supervisor@example.com  | password |
+| Staff      | staff@example.com       | password |
 
-Change this after first login in any shared environment.
+Demo projects: `alpha-demo.test`, `beta-demo.test` (with vault credentials + expiring SSL).
+
+Change seed passwords after first login in any shared environment.
+
+## Scheduled jobs (cPanel cron)
+
+```bash
+php artisan schedule:run
+# daily: credentials:check-expiry --notify
+php artisan queue:work --stop-when-empty
+```
 
 ## Tests
 
@@ -47,16 +59,4 @@ php artisan test
 
 ## Drivers (Hostinger-safe)
 
-`.env.example` sets:
-
-- `SESSION_DRIVER=database`
-- `CACHE_STORE=database`
-- `QUEUE_CONNECTION=database`
-
-Never use Redis on production shared hosting.
-
-## Stack notes
-
-- Laravel 13 · Livewire 4 · Tailwind 4 · Alpine (via Livewire) · Pest
-- Roles are many-to-many (`role_user.project_id` null = global for M1)
-- Effective permissions = union of all assigned roles
+`.env.example` sets SESSION/CACHE/QUEUE to file or database — never Redis for production on shared hosting.

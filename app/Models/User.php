@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 #[Fillable(['name', 'email', 'password', 'is_active'])]
 #[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'])]
@@ -34,6 +35,20 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Role::class)
             ->withPivot('project_id')
+            ->withTimestamps();
+    }
+
+    public function ownedProjects(): BelongsToMany
+    {
+        return $this->belongsToMany(Project::class, 'project_owners')
+            ->withPivot('share_bps')
+            ->withTimestamps();
+    }
+
+    public function assignedProjects(): BelongsToMany
+    {
+        return $this->belongsToMany(Project::class, 'project_user')
+            ->withPivot('assignment_note')
             ->withTimestamps();
     }
 
@@ -77,6 +92,59 @@ class User extends Authenticatable
         $this->roles()->syncWithoutDetaching([
             $roleId => ['project_id' => $projectId],
         ]);
+    }
+
+    public function hasRole(string $roleName): bool
+    {
+        return $this->roles()->where('name', $roleName)->exists();
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->hasRole('admin');
+    }
+
+    /**
+     * Project IDs this user may access.
+     * Admin: all. Otherwise: team (project_user) ∪ supervisor role_user.project_id ∪ ownership.
+     *
+     * @return array<int, int>
+     */
+    public function accessibleProjectIds(): array
+    {
+        if ($this->isAdmin()) {
+            return Project::query()->pluck('id')->map(fn ($id) => (int) $id)->all();
+        }
+
+        $teamIds = DB::table('project_user')
+            ->where('user_id', $this->id)
+            ->pluck('project_id');
+
+        $roleScopedIds = DB::table('role_user')
+            ->where('user_id', $this->id)
+            ->whereNotNull('project_id')
+            ->pluck('project_id');
+
+        $ownedIds = DB::table('project_owners')
+            ->where('user_id', $this->id)
+            ->pluck('project_id');
+
+        return $teamIds
+            ->merge($roleScopedIds)
+            ->merge($ownedIds)
+            ->unique()
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+    }
+
+    public function canAccessProject(Project $project): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        return in_array((int) $project->id, $this->accessibleProjectIds(), true);
     }
 
     public function hasTwoFactorEnabled(): bool

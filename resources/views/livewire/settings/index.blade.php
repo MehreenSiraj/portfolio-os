@@ -54,6 +54,22 @@
             </div>
         </div>
 
+        <div class="rounded-xl border border-line bg-surface p-6 space-y-4">
+            <h2 class="text-sm font-semibold tracking-tight">Credential expiry alerts</h2>
+            <x-input
+                label="Threshold days (comma-separated)"
+                wire:model="credential_expiry_thresholds"
+                error="{{ $errors->first('credential_expiry_thresholds') }}"
+                hint="Default 30,14,7. Used by dashboard widget and credentials:check-expiry."
+            />
+            <x-input
+                label="Extra notify emails"
+                wire:model="credential_expiry_notify_emails"
+                error="{{ $errors->first('credential_expiry_notify_emails') }}"
+                hint="Optional comma-separated list. Admins are always included when --notify runs."
+            />
+        </div>
+
         @if(auth()->user()->hasPermission('settings.update'))
             <x-button type="submit">Save settings</x-button>
         @endif

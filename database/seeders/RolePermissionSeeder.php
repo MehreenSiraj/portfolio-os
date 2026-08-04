@@ -18,6 +18,15 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'users.deactivate', 'group' => 'users', 'label' => 'Deactivate users'],
             ['name' => 'settings.view', 'group' => 'settings', 'label' => 'View settings'],
             ['name' => 'settings.update', 'group' => 'settings', 'label' => 'Update settings'],
+            // Milestone 2
+            ['name' => 'projects.view', 'group' => 'projects', 'label' => 'View projects'],
+            ['name' => 'projects.create', 'group' => 'projects', 'label' => 'Create projects'],
+            ['name' => 'projects.update', 'group' => 'projects', 'label' => 'Update projects'],
+            ['name' => 'projects.delete', 'group' => 'projects', 'label' => 'Delete projects'],
+            ['name' => 'projects.manage_ownership', 'group' => 'projects', 'label' => 'Manage project ownership'],
+            ['name' => 'credentials.view', 'group' => 'credentials', 'label' => 'View credentials'],
+            ['name' => 'credentials.manage', 'group' => 'credentials', 'label' => 'Manage credentials'],
+            ['name' => 'credentials.reveal', 'group' => 'credentials', 'label' => 'Reveal credential secrets'],
         ];
 
         foreach ($permissions as $permission) {
@@ -36,22 +45,36 @@ class RolePermissionSeeder extends Seeder
             'partner' => [
                 'label' => 'Partner',
                 'description' => 'Owner / partner access',
-                'permissions' => ['dashboard.view'],
+                'permissions' => [
+                    'dashboard.view',
+                    'projects.view',
+                ],
             ],
             'supervisor' => [
                 'label' => 'Supervisor',
                 'description' => 'Team supervision',
-                'permissions' => ['dashboard.view'],
+                'permissions' => [
+                    'dashboard.view',
+                    'projects.view',
+                    'projects.update',
+                    'credentials.view',
+                ],
             ],
             'staff' => [
                 'label' => 'Staff',
                 'description' => 'Day-to-day operators',
-                'permissions' => ['dashboard.view'],
+                'permissions' => [
+                    'dashboard.view',
+                    'projects.view',
+                ],
             ],
             'accountant' => [
                 'label' => 'Accountant',
                 'description' => 'Finance operations',
-                'permissions' => ['dashboard.view'],
+                'permissions' => [
+                    'dashboard.view',
+                    'projects.view',
+                ],
             ],
         ];
 

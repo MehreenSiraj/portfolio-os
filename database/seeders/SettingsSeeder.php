@@ -21,6 +21,12 @@ class SettingsSeeder extends Seeder
                     'note' => 'Set rates when recording multi-currency amounts (Milestone 5).',
                 ],
             ],
+            'credential_expiry_thresholds' => [
+                'value' => [30, 14, 7],
+            ],
+            'credential_expiry_notify_emails' => [
+                'value' => [],
+            ],
         ];
 
         foreach ($defaults as $key => $payload) {

@@ -6,6 +6,8 @@ use App\Livewire\Auth\ForgotPassword;
 use App\Livewire\Auth\Login;
 use App\Livewire\Auth\ResetPassword;
 use App\Livewire\Dashboard;
+use App\Livewire\Projects\Index as ProjectsIndex;
+use App\Livewire\Projects\Show as ProjectShow;
 use App\Livewire\Settings\Index as SettingsIndex;
 use App\Livewire\Users\Index as UsersIndex;
 use Illuminate\Support\Facades\Auth;
@@ -35,4 +37,12 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
     Route::get('/settings', SettingsIndex::class)
         ->middleware(EnsurePermission::class.':settings.view')
         ->name('settings.index');
+
+    Route::get('/projects', ProjectsIndex::class)
+        ->middleware(EnsurePermission::class.':projects.view')
+        ->name('projects.index');
+
+    Route::get('/projects/{project}', ProjectShow::class)
+        ->middleware(EnsurePermission::class.':projects.view')
+        ->name('projects.show');
 });
