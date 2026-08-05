@@ -48,6 +48,7 @@ The reference deployment is **Hostinger shared hosting over FTP**. There is no N
 - `npm` does not exist on the server. Frontend assets are built locally and uploaded.
 - Queues run as a cron drip (`queue:work --stop-when-empty`), so **every queued job must be safe to run late, out of order, or twice.**
 - `vendor/` has to stay installable with `--no-dev` and small enough to upload as a zip. Prefer few, small dependencies; say why in the PR if you add one.
+- `composer.json` pins `config.platform.php` to the **lowest** supported PHP. Without it, `composer update` on a newer local PHP resolves packages that refuse to install on the oldest supported server. Leave the pin in place, and never raise it in the same PR as a feature.
 
 ### Money: integers, always
 
