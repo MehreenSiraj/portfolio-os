@@ -4,6 +4,8 @@ use App\Http\Controllers\OpsController;
 use App\Http\Controllers\PublicStorageController;
 use App\Http\Middleware\EnsurePermission;
 use App\Http\Middleware\EnsureUserIsActive;
+use App\Livewire\Ai\Ask as AiAsk;
+use App\Livewire\Ai\DraftNotes as AiDraftNotes;
 use App\Livewire\Approvals\Queue as ApprovalQueue;
 use App\Livewire\Articles\Index as ArticlesIndex;
 use App\Livewire\Auth\ForgotPassword;
@@ -67,6 +69,10 @@ Route::post('/logout', function () {
 
 Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
     Route::get('/', Dashboard::class)->name('dashboard');
+
+    // Milestone 7 — routes always registered; components 404 when AI key is missing
+    Route::get('/ai', AiAsk::class)->name('ai.ask');
+    Route::get('/ai/drafts', AiDraftNotes::class)->name('ai.drafts');
 
     Route::get('/users', UsersIndex::class)
         ->middleware(EnsurePermission::class.':users.view')

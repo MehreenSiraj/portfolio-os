@@ -64,6 +64,27 @@
         </div>
 
         <div class="rounded-xl border border-line bg-surface p-6 space-y-4">
+            <h2 class="text-sm font-semibold tracking-tight">AI spend cap</h2>
+            <p class="text-sm text-muted">
+                Soft monthly budget for Ask-your-data and helpers (USD cents, estimate from token use).
+                AI is fully hidden when no API key is set in the environment.
+            </p>
+            <x-input
+                type="number"
+                label="Monthly budget (USD cents)"
+                wire:model="ai_monthly_budget_cents"
+                error="{{ $errors->first('ai_monthly_budget_cents') }}"
+                hint="Example: 2000 = $20.00. Leave keyed env AI_MONTHLY_BUDGET_CENTS as the default seed."
+                min="0"
+            />
+            @if(\App\Support\AiAvailability::enabled())
+                <p class="text-xs text-success">AI is currently enabled (API key present).</p>
+            @else
+                <p class="text-xs text-muted">AI is hidden — set AI_API_KEY or OPENAI_API_KEY / ANTHROPIC_API_KEY to enable.</p>
+            @endif
+        </div>
+
+        <div class="rounded-xl border border-line bg-surface p-6 space-y-4">
             <h2 class="text-sm font-semibold tracking-tight">Credential expiry alerts</h2>
             <x-input
                 label="Threshold days (comma-separated)"

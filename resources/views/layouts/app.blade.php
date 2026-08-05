@@ -128,6 +128,13 @@
                     </a>
                 @endif
 
+                @if(\App\Support\AiAvailability::enabled())
+                    <a href="{{ route('ai.ask') }}" wire:navigate
+                       class="rounded-lg px-3 py-2 text-sm font-medium transition {{ request()->routeIs('ai.*') ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-canvas hover:text-ink' }}">
+                        AI assistant
+                    </a>
+                @endif
+
                 @if(auth()->user()?->hasPermission('users.view'))
                     <a href="{{ route('users.index') }}" wire:navigate
                        class="rounded-lg px-3 py-2 text-sm font-medium transition {{ request()->routeIs('users.*') ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-canvas hover:text-ink' }}">
@@ -217,6 +224,9 @@
                 @endif
                 @if(auth()->user()?->hasAnyPermission('partners.view', 'partners.statement'))
                     <a href="{{ auth()->user()->hasPermission('partners.view') ? route('money.partners') : route('money.partners.statement') }}" wire:navigate class="shrink-0 rounded-md px-3 py-1.5 text-sm {{ request()->routeIs('money.partners*') ? 'bg-accent-soft text-accent' : 'text-muted' }}">Partners</a>
+                @endif
+                @if(\App\Support\AiAvailability::enabled())
+                    <a href="{{ route('ai.ask') }}" wire:navigate class="shrink-0 rounded-md px-3 py-1.5 text-sm {{ request()->routeIs('ai.*') ? 'bg-accent-soft text-accent' : 'text-muted' }}">AI</a>
                 @endif
                 @if(auth()->user()?->hasPermission('users.view'))
                     <a href="{{ route('users.index') }}" wire:navigate class="shrink-0 rounded-md px-3 py-1.5 text-sm {{ request()->routeIs('users.*') ? 'bg-accent-soft text-accent' : 'text-muted' }}">Users</a>

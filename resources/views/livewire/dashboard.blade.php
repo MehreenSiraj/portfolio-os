@@ -7,6 +7,12 @@
         </p>
     </div>
 
+    @if (\App\Support\AiAvailability::enabled())
+        <div class="mb-8">
+            <livewire:ai.ask :compact="true" />
+        </div>
+    @endif
+
     @if ($canSeeApprovals || $canSeeTasks)
         <div class="mb-8 grid gap-4 lg:grid-cols-2">
             @if ($canSeeApprovals)

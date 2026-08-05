@@ -28,6 +28,9 @@ class SettingsSeeder extends Seeder
             'credential_expiry_notify_emails' => [
                 'value' => [],
             ],
+            'ai_monthly_budget_cents' => [
+                'value' => (int) config('ai.monthly_budget_cents', 2000),
+            ],
         ];
 
         foreach ($defaults as $key => $payload) {

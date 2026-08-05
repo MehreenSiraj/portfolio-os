@@ -30,6 +30,8 @@ class Index extends Component
 
     public int $late_arrival_hour = 10;
 
+    public string $ai_monthly_budget_cents = '';
+
     public function mount(): void
     {
         abort_unless(Auth::user()?->hasPermission('settings.view'), 403);
@@ -39,6 +41,11 @@ class Index extends Component
         $this->display_timezone = (string) AppSettings::get('display_timezone', 'Asia/Karachi');
         $this->two_factor_required = (bool) AppSettings::get('two_factor_required', false);
         $this->late_arrival_hour = (int) AppSettings::get('late_arrival_hour', 10);
+
+        $budget = AppSettings::get('ai_monthly_budget_cents');
+        $this->ai_monthly_budget_cents = $budget !== null && $budget !== ''
+            ? (string) $budget
+            : (string) config('ai.monthly_budget_cents', 2000);
 
         $fx = AppSettings::get('fx_defaults', []);
         $this->fx_usd_to_pkr = isset($fx['USD_to_PKR']) && $fx['USD_to_PKR'] !== null
@@ -71,6 +78,7 @@ class Index extends Component
             'fx_note' => ['nullable', 'string', 'max:500'],
             'credential_expiry_thresholds' => ['required', 'string', 'max:64'],
             'credential_expiry_notify_emails' => ['nullable', 'string', 'max:1000'],
+            'ai_monthly_budget_cents' => ['nullable', 'integer', 'min:0', 'max:100000000'],
         ]);
 
         $thresholds = collect(explode(',', $validated['credential_expiry_thresholds']))
@@ -103,6 +111,10 @@ class Index extends Component
         ]);
         AppSettings::set('credential_expiry_thresholds', $thresholds);
         AppSettings::set('credential_expiry_notify_emails', $emails);
+
+        if (array_key_exists('ai_monthly_budget_cents', $validated) && $validated['ai_monthly_budget_cents'] !== null && $validated['ai_monthly_budget_cents'] !== '') {
+            AppSettings::set('ai_monthly_budget_cents', (int) $validated['ai_monthly_budget_cents']);
+        }
 
         session()->flash('status', 'Settings saved.');
     }
