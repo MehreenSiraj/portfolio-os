@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/YOUR_USERNAME/portfolio-os/security/advisories/new
+    about: Please report vulnerabilities privately, never as a public issue.
+  - name: Deployment help
+    url: https://github.com/YOUR_USERNAME/portfolio-os/blob/main/DEPLOYMENT.md
+    about: The shared-hosting deployment walkthrough, ops route and cron setup.

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\LoginHistory;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class LoginHistoryService
@@ -16,7 +17,7 @@ class LoginHistoryService
     {
         $request ??= request();
         $at = $loggedInAt
-            ? \Carbon\Carbon::parse($loggedInAt)->utc()
+            ? Carbon::parse($loggedInAt)->utc()
             : now()->utc();
 
         $userAgent = $request?->userAgent();

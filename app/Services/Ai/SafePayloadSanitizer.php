@@ -37,9 +37,6 @@ class SafePayloadSanitizer
 
     /**
      * Deep-sanitize arrays/objects for LLM or usage logs.
-     *
-     * @param  mixed  $payload
-     * @return mixed
      */
     public function sanitize(mixed $payload): mixed
     {

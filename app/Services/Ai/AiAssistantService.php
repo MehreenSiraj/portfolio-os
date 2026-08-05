@@ -47,7 +47,7 @@ class AiAssistantService
         $key = $this->mapper->map($question);
         if ($key === null) {
             return [
-                'answer' => "I could not map that question to a supported report. Try one of: "
+                'answer' => 'I could not map that question to a supported report. Try one of: '
                     .implode('; ', array_values(QuestionMapper::labels())).'.',
                 'report_key' => null,
                 'report_title' => null,

@@ -3,6 +3,7 @@
 use App\Enums\RevenueSource;
 use App\Enums\TaskStatus;
 use App\Livewire\Ai\Ask as AiAsk;
+use App\Models\AiDraftNote;
 use App\Models\AiUsageLog;
 use App\Models\Project;
 use App\Models\Task;
@@ -17,10 +18,11 @@ use App\Services\RevenueService;
 use App\Support\AiAvailability;
 use App\Support\DisplayTimezone;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
 
-uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
+uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->seed(RolePermissionSeeder::class);
@@ -373,5 +375,5 @@ it('drafts monthly notes without requiring LLM', function () {
     $this->artisan('ai:draft-monthly-summaries', ['--no-llm' => true])
         ->assertSuccessful();
 
-    expect(\App\Models\AiDraftNote::query()->count())->toBeGreaterThan(0);
+    expect(AiDraftNote::query()->count())->toBeGreaterThan(0);
 });

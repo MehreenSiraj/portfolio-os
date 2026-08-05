@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Services\ExpenseService;
+use Carbon\Carbon;
 use Illuminate\Console\Command;
 
 class GenerateRecurringExpenses extends Command
@@ -14,7 +15,7 @@ class GenerateRecurringExpenses extends Command
     public function handle(ExpenseService $expenses): int
     {
         $asOf = $this->option('date')
-            ? \Carbon\Carbon::parse($this->option('date'))
+            ? Carbon::parse($this->option('date'))
             : now();
 
         $count = $expenses->generateDueRecurring($asOf);

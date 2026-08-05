@@ -277,7 +277,7 @@ class AiHelperService
         return "Task brief: {$title}\n\n"
             ."Project context: {$domain}\n"
             ."Objective: Complete “{$title}” to the quality bar used for similar work on {$domain}.\n"
-            ."Inputs: ".($notes !== '' ? $notes : 'None provided — confirm requirements with the requester.')."\n"
+            .'Inputs: '.($notes !== '' ? $notes : 'None provided — confirm requirements with the requester.')."\n"
             ."Deliverables: Concrete output matching the title; leave notes for the reviewer.\n"
             .'Out of scope: Credential vault access, production credentials, or payout details.';
     }

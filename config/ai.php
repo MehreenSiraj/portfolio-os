@@ -4,7 +4,6 @@
  * Milestone 7 — optional AI assistant.
  * Leave AI_API_KEY (or provider-specific keys) empty: AI stays fully hidden.
  */
-
 $apiKey = env('AI_API_KEY')
     ?: env('OPENAI_API_KEY')
     ?: env('ANTHROPIC_API_KEY');

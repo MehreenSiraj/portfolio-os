@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Expense;
+use App\Models\ExpenseAllocation;
 use App\Models\Project;
 use App\Models\Revenue;
 use App\Models\User;
@@ -90,7 +91,7 @@ class ProfitAndLossService
                 ->whereDate('expense_date', '<=', $to)
                 ->sum('amount_paisa');
 
-            $shared = (int) \App\Models\ExpenseAllocation::query()
+            $shared = (int) ExpenseAllocation::query()
                 ->where('project_id', $project->id)
                 ->whereDate('period_month', '>=', $fromMonth)
                 ->whereDate('period_month', '<=', $toMonth)

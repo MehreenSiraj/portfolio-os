@@ -1,0 +1,61 @@
+name: Feature request
+description: Suggest a capability or an improvement
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before writing: this project deliberately targets **shared hosting with PHP
+        and MySQL only** — no Node runtime, no Redis, no persistent process, no
+        websockets, no containers. Ideas that need any of those are unlikely to be
+        accepted in this form, though a version that degrades gracefully often is.
+        See [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md).
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve
+      description: Describe the situation you are in, not the solution you have in mind.
+      placeholder: When I close the month I have to re-check every project by hand because…
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like to happen
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Projects / credential vault
+        - Work (tasks, articles, links, approvals)
+        - People (attendance, work logs, scorecards)
+        - Money (revenue, expenses, P&L, distributions, partners)
+        - Users, roles & permissions
+        - Settings
+        - AI assistant
+        - Deployment / ops route / packaging
+        - UI / design system
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+      description: Including doing nothing, or handling it outside the app.
+
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Constraints
+      options:
+        - label: This works without Redis, a queue daemon, websockets or a Node runtime on the server
+        - label: This does not require editing an approved distribution run or hard-deleting a financial record
+        - label: I am willing to work on a pull request for this

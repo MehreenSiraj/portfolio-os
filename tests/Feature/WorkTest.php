@@ -1,30 +1,34 @@
 <?php
 
 use App\Enums\ArticleStatus;
+use App\Enums\CredentialType;
 use App\Enums\LinkWorkflowStatus;
 use App\Enums\ProjectStatus;
 use App\Enums\TaskStatus;
 use App\Enums\TaskType;
-use App\Livewire\Approvals\Queue as ApprovalQueue;
 use App\Livewire\Articles\Index as ArticlesIndex;
 use App\Livewire\Projects\Index as ProjectsIndex;
+use App\Livewire\Projects\Show;
 use App\Livewire\Tasks\Show as TaskShow;
+use App\Models\Credential;
 use App\Models\Expense;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\TaskTemplate;
 use App\Models\User;
 use App\Services\ArticleWorkflowService;
+use App\Services\ExpenseService;
 use App\Services\LinkWorkflowService;
 use App\Services\ProjectOwnershipService;
 use App\Services\SetupChecklistService;
 use App\Services\TaskWorkflowService;
 use Database\Seeders\RolePermissionSeeder;
 use Database\Seeders\TaskTemplateSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 
-uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
+uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->seed(RolePermissionSeeder::class);
@@ -145,7 +149,7 @@ it('creates an expense once when an article is approved (idempotent)', function 
     $countBefore = Expense::query()->count();
 
     // Second approve attempt should fail transition — re-run expense hook via service instead
-    $expenseAgain = app(\App\Services\ExpenseService::class)->createFromArticleApproval($article->fresh(), $admin);
+    $expenseAgain = app(ExpenseService::class)->createFromArticleApproval($article->fresh(), $admin);
 
     expect($expenseAgain->id)->toBe($expenseId)
         ->and(Expense::query()->count())->toBe($countBefore)
@@ -188,7 +192,7 @@ it('creates expense on link approval and warns on duplicate source domain', func
         ->and((int) Expense::query()->find($link->expense_id)->amount_paisa)->toBe(9_000_00);
 
     $count = Expense::query()->count();
-    app(\App\Services\ExpenseService::class)->createFromLinkApproval($link->fresh(), $admin);
+    app(ExpenseService::class)->createFromLinkApproval($link->fresh(), $admin);
     expect(Expense::query()->count())->toBe($count);
 });
 
@@ -266,16 +270,16 @@ it('masks credential secrets and logs reveal (m2 regression)', function () {
     $admin = workAdmin();
     $project = workProject($admin, ['domain' => 'vault-m3.test']);
 
-    $credential = \App\Models\Credential::factory()->create([
+    $credential = Credential::factory()->create([
         'project_id' => $project->id,
-        'type' => \App\Enums\CredentialType::CmsAdmin,
+        'type' => CredentialType::CmsAdmin,
         'label' => 'WP',
         'username' => 'admin',
         'secret' => 'super-secret-m3',
     ]);
 
     Livewire::actingAs($admin)
-        ->test(\App\Livewire\Projects\Show::class, ['project' => $project])
+        ->test(Show::class, ['project' => $project])
         ->assertSee('••••••••')
         ->assertDontSee('super-secret-m3')
         ->call('revealCredential', $credential->id)

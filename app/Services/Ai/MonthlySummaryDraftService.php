@@ -4,6 +4,7 @@ namespace App\Services\Ai;
 
 use App\Models\AiDraftNote;
 use App\Models\User;
+use App\Services\ScorecardService;
 use App\Support\AiAvailability;
 use App\Support\DisplayTimezone;
 use Illuminate\Support\Facades\Log;
@@ -111,7 +112,7 @@ class MonthlySummaryDraftService
                         'user_name' => $subject->name,
                         'tasks_completed' => 0,
                     ];
-                $own = app(\App\Services\ScorecardService::class)->forUserMonth($subject, $period);
+                $own = app(ScorecardService::class)->forUserMonth($subject, $period);
                 unset($own['pay_rates']);
                 $body = $this->narrate('employee_monthly', [
                     'key' => 'scorecard',

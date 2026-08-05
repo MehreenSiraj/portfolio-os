@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\CredentialType;
+use Database\Factories\CredentialFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,8 +14,9 @@ use Illuminate\Support\Carbon;
 
 class Credential extends Model
 {
-    /** @use HasFactory<\Database\Factories\CredentialFactory> */
+    /** @use HasFactory<CredentialFactory> */
     use HasFactory;
+
     use SoftDeletes;
 
     protected $fillable = [

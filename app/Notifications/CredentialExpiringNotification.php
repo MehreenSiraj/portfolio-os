@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Models\Credential;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -13,7 +14,7 @@ class CredentialExpiringNotification extends Notification implements ShouldQueue
     use Queueable;
 
     /**
-     * @param  Collection<int, \App\Models\Credential>  $credentials
+     * @param  Collection<int, Credential>  $credentials
      * @param  array<int, int>  $thresholds
      */
     public function __construct(

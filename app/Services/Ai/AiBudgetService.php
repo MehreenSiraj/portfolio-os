@@ -6,7 +6,6 @@ use App\Models\AiUsageLog;
 use App\Models\User;
 use App\Support\AiAvailability;
 use App\Support\DisplayTimezone;
-use Carbon\Carbon;
 use RuntimeException;
 
 class AiBudgetService
@@ -55,6 +54,7 @@ class AiBudgetService
         }
 
         $per1k = (float) config('ai.cost_per_1k_tokens_cents', 0.15);
+
         // round up to whole cents
         return max(1, (int) ceil(($totalTokens / 1000) * $per1k));
     }

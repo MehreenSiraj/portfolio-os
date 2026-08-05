@@ -27,9 +27,10 @@ use App\Support\DisplayTimezone;
 use Carbon\Carbon;
 use Database\Seeders\RolePermissionSeeder;
 use Database\Seeders\SettingsSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
-uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
+uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->seed(RolePermissionSeeder::class);

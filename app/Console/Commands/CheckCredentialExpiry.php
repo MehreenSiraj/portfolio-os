@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Notifications\CredentialExpiringNotification;
 use App\Support\AppSettings;
 use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Notification;
 
 class CheckCredentialExpiry extends Command
@@ -56,7 +57,7 @@ class CheckCredentialExpiry extends Command
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, Credential>  $credentials
+     * @param  Collection<int, Credential>  $credentials
      * @param  array<int, int>  $thresholds
      */
     protected function sendNotifications($credentials, array $thresholds): void

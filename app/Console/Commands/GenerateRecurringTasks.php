@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Services\RecurringTaskGenerator;
+use Carbon\Carbon;
 use Illuminate\Console\Command;
 
 class GenerateRecurringTasks extends Command
@@ -14,7 +15,7 @@ class GenerateRecurringTasks extends Command
     public function handle(RecurringTaskGenerator $generator): int
     {
         $asOf = $this->option('date')
-            ? \Carbon\Carbon::parse($this->option('date'), 'UTC')->startOfDay()
+            ? Carbon::parse($this->option('date'), 'UTC')->startOfDay()
             : null;
 
         $count = $generator->generateDue($asOf);

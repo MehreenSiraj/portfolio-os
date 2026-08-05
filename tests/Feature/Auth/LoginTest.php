@@ -1,10 +1,12 @@
 <?php
 
+use App\Livewire\Auth\Login;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
-uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
+uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->seed(RolePermissionSeeder::class);
@@ -24,7 +26,7 @@ it('authenticates a valid active user', function () {
     ]);
     $user->assignRole('staff');
 
-    Livewire::test(\App\Livewire\Auth\Login::class)
+    Livewire::test(Login::class)
         ->set('email', 'active@example.com')
         ->set('password', 'password')
         ->call('login')
@@ -40,7 +42,7 @@ it('rejects invalid credentials', function () {
         'password' => 'password',
     ]);
 
-    Livewire::test(\App\Livewire\Auth\Login::class)
+    Livewire::test(Login::class)
         ->set('email', 'active@example.com')
         ->set('password', 'wrong-password')
         ->call('login')
@@ -55,7 +57,7 @@ it('blocks inactive users from logging in', function () {
         'password' => 'password',
     ]);
 
-    Livewire::test(\App\Livewire\Auth\Login::class)
+    Livewire::test(Login::class)
         ->set('email', 'gone@example.com')
         ->set('password', 'password')
         ->call('login')

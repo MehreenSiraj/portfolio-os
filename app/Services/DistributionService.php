@@ -6,6 +6,7 @@ use App\Enums\DistributionStatus;
 use App\Enums\PartnerLedgerType;
 use App\Models\DistributionLine;
 use App\Models\DistributionRun;
+use App\Models\PartnerLedgerEntry;
 use App\Models\Project;
 use App\Models\User;
 use App\Support\Money;
@@ -24,8 +25,6 @@ class DistributionService
 
     /**
      * Create (or rebuild if still draft same month) a draft distribution for a calendar month.
-     *
-     * @return DistributionRun
      */
     public function createDraft(string $yearMonth, User $actor, int $holdbackBps = 0, ?string $notes = null): DistributionRun
     {
@@ -185,7 +184,7 @@ class DistributionService
 
         return DB::transaction(function () use ($run, $actor, $reason) {
             // Reverse ledger credits with adjusting withdrawal/adjustment entries
-            $entries = \App\Models\PartnerLedgerEntry::query()
+            $entries = PartnerLedgerEntry::query()
                 ->where('distribution_run_id', $run->id)
                 ->where('type', PartnerLedgerType::ProfitCredit->value)
                 ->get();

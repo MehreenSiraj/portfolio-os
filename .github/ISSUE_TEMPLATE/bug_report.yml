@@ -1,0 +1,91 @@
+name: Bug report
+description: Something behaves incorrectly
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Please do **not** use this form for security
+        vulnerabilities — follow [SECURITY.md](../blob/main/SECURITY.md) instead.
+
+        Never paste a real `APP_KEY`, credential, API key or database password
+        into an issue.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you expected, and what happened instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Sign in as the seeded supervisor
+        2. Go to Approvals
+        3. Press `a` on the first article
+        4. …
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Projects / credential vault
+        - Work (tasks, articles, links, approvals)
+        - People (attendance, work logs, scorecards)
+        - Money (revenue, expenses, P&L, distributions, partners)
+        - Users, roles & permissions
+        - Settings
+        - AI assistant
+        - Deployment / ops route / packaging
+        - UI / design system
+        - Other or not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: PHP version, database, how it is hosted, and the commit or version.
+      placeholder: |
+        PHP: 8.3.14
+        Database: MySQL 8.0 (or SQLite)
+        Hosting: shared hosting via FTP / local artisan serve / VPS
+        Version or commit: v1.0.0 / abc1234
+    validations:
+      required: true
+
+  - type: textarea
+    id: money-config
+    attributes:
+      label: Currency and timezone configuration
+      description: Only needed for money, reporting or attendance bugs — these are configurable and the values matter.
+      placeholder: |
+        MONEY_BASE_CURRENCY=EUR
+        MONEY_BASE_EXPONENT=2
+        MONEY_SOURCE_CURRENCY=USD
+        Display timezone: Europe/Berlin
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: From `storage/logs/`. Redact anything sensitive first.
+      render: text
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I have redacted all secrets, keys and passwords from this report
+          required: true
+        - label: I checked that this is not already an open issue
+          required: true

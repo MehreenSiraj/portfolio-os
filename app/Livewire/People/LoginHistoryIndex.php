@@ -3,7 +3,6 @@
 namespace App\Livewire\People;
 
 use App\Models\LoginHistory;
-use App\Models\User;
 use App\Services\PeopleVisibilityService;
 use App\Support\DisplayTimezone;
 use Illuminate\Support\Facades\Auth;
