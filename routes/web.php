@@ -40,7 +40,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 Route::get('/_ops/{action}', OpsController::class)
-    ->where('action', 'migrate|storage-link|cache-clear|optimize')
+    ->where('action', 'migrate|storage-link|cache-clear|optimize|livewire-assets')
     ->middleware('throttle:'.max(1, (int) config('ops.throttle', 5)).',1')
     ->name('ops');
 

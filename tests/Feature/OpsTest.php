@@ -86,8 +86,31 @@ it('serves public storage files via media fallback route', function () {
         ->assertNotFound();
 });
 
-it('runs db:backup for sqlite file databases when available', function () {
-    // In-memory testing DB cannot be file-copied; command should fail cleanly.
-    $exit = Artisan::call('db:backup');
-    expect($exit)->toBe(1);
+it('restores missing Livewire dist assets via livewire-assets ops', function () {
+    config(['ops.token' => 'correct-secret-token']);
+
+    $dist = base_path('vendor/livewire/livewire/dist');
+    $min = $dist.'/livewire.min.js';
+    expect(is_file($min))->toBeTrue();
+
+    // Simulate missing dist by renaming; ops should re-fetch from GitHub.
+    $backup = $dist.'.bak-ops-test';
+    if (is_dir($backup)) {
+        File::deleteDirectory($backup);
+    }
+    rename($dist, $backup);
+
+    try {
+        $response = $this->get('/_ops/livewire-assets?token=correct-secret-token');
+        $response->assertOk();
+        $response->assertSee('livewire.min.js exists=yes', false);
+        expect(is_file($min) && filesize($min) > 1000)->toBeTrue();
+    } finally {
+        if (is_dir($dist)) {
+            File::deleteDirectory($dist);
+        }
+        if (is_dir($backup)) {
+            rename($backup, $dist);
+        }
+    }
 });

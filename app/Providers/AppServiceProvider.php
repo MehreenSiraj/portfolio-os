@@ -15,6 +15,7 @@ use App\Policies\ProjectPolicy;
 use App\Policies\TaskPolicy;
 use App\Policies\TaskTemplatePolicy;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -26,6 +27,11 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Hostinger / Cloudflare terminate TLS; force HTTPS URLs in production.
+        if ($this->app->environment('production')) {
+            URL::forceScheme('https');
+        }
+
         Gate::policy(Project::class, ProjectPolicy::class);
         Gate::policy(Credential::class, CredentialPolicy::class);
         Gate::policy(Task::class, TaskPolicy::class);

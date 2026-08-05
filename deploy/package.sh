@@ -173,6 +173,14 @@ if [[ ! -d "$STAGE/app/vendor" ]]; then
   exit 1
 fi
 
+# Livewire serves JS from vendor/.../dist over a Laravel route. Incomplete FTP
+# uploads that omit this folder cause silent login (livewire.min.js → 500).
+if [[ ! -f "$STAGE/app/vendor/livewire/livewire/dist/livewire.min.js" ]]; then
+  echo "ERROR: vendor/livewire/livewire/dist/livewire.min.js missing from package." >&2
+  echo "Re-run composer install so Livewire dist assets are present, then package again." >&2
+  exit 1
+fi
+
 step "Creating app.zip"
 (
   cd "$STAGE/app"
