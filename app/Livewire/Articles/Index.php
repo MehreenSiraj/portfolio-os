@@ -7,9 +7,9 @@ use App\Models\Article;
 use App\Models\Project;
 use App\Models\User;
 use App\Services\ArticleWorkflowService;
+use App\Support\Money;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -103,7 +103,7 @@ class Index extends Component
         $this->word_count_target = (string) ($article->word_count_target ?? '');
         $this->word_count_actual = (string) ($article->word_count_actual ?? '');
         $this->writer_id = (string) ($article->writer_id ?? '');
-        $this->cost = number_format($article->cost_paisa / 100, 2, '.', '');
+        $this->cost = Money::fromMinor((int) $article->cost_paisa);
         $this->meta_title = (string) $article->meta_title;
         $this->meta_description = (string) $article->meta_description;
         $this->published_url = (string) $article->published_url;
@@ -147,7 +147,7 @@ class Index extends Component
             'word_count_actual' => $validated['word_count_actual'] !== null && $validated['word_count_actual'] !== ''
                 ? (int) $validated['word_count_actual'] : null,
             'writer_id' => $validated['writer_id'] ?: null,
-            'cost_paisa' => (int) round(((float) $validated['cost']) * 100),
+            'cost_paisa' => Money::toMinor($validated['cost']),
             'meta_title' => $validated['meta_title'] ?: null,
             'meta_description' => $validated['meta_description'] ?: null,
             'published_url' => $validated['published_url'] ?: null,

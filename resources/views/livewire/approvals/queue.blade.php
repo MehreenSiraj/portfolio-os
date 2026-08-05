@@ -98,7 +98,7 @@
                     </div>
                     <div class="flex items-baseline justify-between gap-3">
                         <dt class="text-xs text-muted">Cost</dt>
-                        <dd><x-money :paisa="$item->cost_paisa" currency="PKR" /></dd>
+                        <dd><x-money :paisa="$item->cost_paisa" :currency="\App\Support\Currency::code()" /></dd>
                     </div>
                     <div class="flex items-baseline justify-between gap-3">
                         <dt class="text-xs text-muted">Words (actual / target)</dt>
@@ -128,7 +128,7 @@
                     </div>
                     <div class="flex items-baseline justify-between gap-3">
                         <dt class="text-xs text-muted">Cost</dt>
-                        <dd><x-money :paisa="$item->cost_paisa" currency="PKR" /></dd>
+                        <dd><x-money :paisa="$item->cost_paisa" :currency="\App\Support\Currency::code()" /></dd>
                     </div>
                 </dl>
             @endif

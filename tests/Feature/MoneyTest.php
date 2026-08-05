@@ -1,9 +1,11 @@
 <?php
 
+use App\Enums\ArticleStatus;
 use App\Enums\DistributionStatus;
 use App\Enums\RevenueSource;
 use App\Livewire\Money\ExpensesIndex;
 use App\Livewire\Money\RevenuesIndex;
+use App\Models\Article;
 use App\Models\Expense;
 use App\Models\ExpenseAllocation;
 use App\Models\PartnerLedgerEntry;
@@ -16,11 +18,13 @@ use App\Services\PartnerLedgerService;
 use App\Services\ProfitAndLossService;
 use App\Services\ProjectOwnershipService;
 use App\Services\RevenueService;
+use App\Support\Currency;
 use App\Support\Money;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
-uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
+uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->seed(RolePermissionSeeder::class);
@@ -75,11 +79,11 @@ it('freezes revenue FX on the record and does not recalculate later', function (
 
     expect($rev->amount_usd_cents)->toBe(100_00)
         ->and($rev->fx_rate_e6)->toBe(Money::fxRateToE6('280.00'))
-        ->and($rev->amount_pkr_paisa)->toBe(Money::usdCentsToPkrPaisa(100_00, Money::fxRateToE6('280.00')));
+        ->and($rev->amount_pkr_paisa)->toBe(Money::sourceMinorToBaseMinor(100_00, Money::fxRateToE6('280.00')));
 
     $frozen = $rev->amount_pkr_paisa;
 
-    // "New market rate" must not change stored PKR when only notes updated
+    // "New market rate" must not change the stored base amount when only notes are updated
     $updated = $service->update($rev, [
         'notes' => 'touched later',
         'amount_usd_cents' => $rev->amount_usd_cents,
@@ -89,13 +93,13 @@ it('freezes revenue FX on the record and does not recalculate later', function (
     expect($updated->amount_pkr_paisa)->toBe($frozen)
         ->and($updated->fx_rate_e6)->toBe(Money::fxRateToE6('280.00'));
 
-    // If amount/fx explicitly edited, PKR re-freezes from new pair (still stored, not live tick)
+    // If amount/fx explicitly edited, the base amount re-freezes from the new pair (still stored, not live tick)
     $refrozen = $service->update($rev->fresh(), [
         'amount_usd' => '100.00',
         'fx_rate' => '300.00',
     ], $admin);
 
-    expect($refrozen->amount_pkr_paisa)->toBe(Money::usdCentsToPkrPaisa(100_00, Money::fxRateToE6('300.00')))
+    expect($refrozen->amount_pkr_paisa)->toBe(Money::sourceMinorToBaseMinor(100_00, Money::fxRateToE6('300.00')))
         ->and($refrozen->amount_pkr_paisa)->not->toBe($frozen);
 });
 
@@ -112,9 +116,9 @@ it('allocates shared expenses by revenue share', function () {
         'amount_usd_cents' => 0,
         'fx_rate_e6' => 0,
         'amount_pkr' => '3000',
-        'currency_input' => 'PKR',
+        'currency_input' => Currency::code(),
     ], $admin);
-    // Override via direct create for pure PKR - need currency_input PKR path
+    // Override via direct create — exercises the base-currency-only input path
     Revenue::query()->where('project_id', $a->id)->delete();
     Revenue::query()->create([
         'project_id' => $a->id,
@@ -122,8 +126,8 @@ it('allocates shared expenses by revenue share', function () {
         'source' => RevenueSource::Adsense,
         'amount_usd_cents' => 0,
         'fx_rate_e6' => 0,
-        'amount_pkr_paisa' => 300_000_00, // 300,000 PKR
-        'currency_input' => 'PKR',
+        'amount_pkr_paisa' => 300_000_00, // 300,000 major units
+        'currency_input' => Currency::code(),
         'created_by' => $admin->id,
     ]);
     Revenue::query()->create([
@@ -132,14 +136,14 @@ it('allocates shared expenses by revenue share', function () {
         'source' => RevenueSource::Adsense,
         'amount_usd_cents' => 0,
         'fx_rate_e6' => 0,
-        'amount_pkr_paisa' => 100_000_00, // 100,000 PKR
-        'currency_input' => 'PKR',
+        'amount_pkr_paisa' => 100_000_00, // 100,000 major units
+        'currency_input' => Currency::code(),
         'created_by' => $admin->id,
     ]);
 
     $expense = app(ExpenseService::class)->createManual([
         'is_shared' => true,
-        'amount' => '40000', // 40,000 PKR
+        'amount' => '40000',
         'description' => 'Shared tools',
         'expense_date' => '2026-07-15',
         'is_paid' => true,
@@ -172,7 +176,7 @@ it('locks distribution on approve with ownership snapshot and partner ledger cre
         'amount_usd_cents' => 0,
         'fx_rate_e6' => 0,
         'amount_pkr_paisa' => 100_000_00,
-        'currency_input' => 'PKR',
+        'currency_input' => Currency::code(),
         'created_by' => $admin->id,
     ]);
 
@@ -266,11 +270,11 @@ it('still creates article expense only once (idempotent) after money expansion',
     $admin = moneyAdmin();
     $project = moneyProject($admin);
 
-    $article = \App\Models\Article::query()->create([
+    $article = Article::query()->create([
         'project_id' => $project->id,
         'title' => 'Money test article',
         'target_keyword' => 'unique-kw-money',
-        'status' => \App\Enums\ArticleStatus::Approved,
+        'status' => ArticleStatus::Approved,
         'cost_paisa' => 12_000_00,
         'created_by' => $admin->id,
         'approved_by' => $admin->id,
@@ -283,7 +287,7 @@ it('still creates article expense only once (idempotent) after money expansion',
     $second = $svc->createFromArticleApproval($article->fresh(), $admin);
 
     expect($first->id)->toBe($second->id)
-        ->and(Expense::query()->where('source_type', \App\Models\Article::class)->where('source_id', $article->id)->count())->toBe(1)
+        ->and(Expense::query()->where('source_type', Article::class)->where('source_id', $article->id)->count())->toBe(1)
         ->and((int) $first->amount_paisa)->toBe(12_000_00)
         ->and((bool) $first->is_shared)->toBeFalse();
 });
@@ -299,7 +303,7 @@ it('computes portfolio pnl for a month', function () {
         'amount_usd_cents' => 0,
         'fx_rate_e6' => 0,
         'amount_pkr_paisa' => 50_000_00,
-        'currency_input' => 'PKR',
+        'currency_input' => Currency::code(),
         'created_by' => $admin->id,
     ]);
 

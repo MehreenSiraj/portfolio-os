@@ -3,6 +3,10 @@
 namespace App\Models;
 
 use App\Enums\ProjectStatus;
+use App\Services\ProfitAndLossService;
+use App\Support\Money;
+use Carbon\Carbon;
+use Database\Factories\ProjectFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -14,8 +18,9 @@ use Illuminate\Support\Facades\Schema;
 
 class Project extends Model
 {
-    /** @use HasFactory<\Database\Factories\ProjectFactory> */
+    /** @use HasFactory<ProjectFactory> */
     use HasFactory;
+
     use SoftDeletes;
 
     protected $fillable = [
@@ -100,7 +105,7 @@ class Project extends Model
         }
 
         $month = $yearMonth
-            ? \Carbon\Carbon::parse(strlen($yearMonth) === 7 ? $yearMonth.'-01' : $yearMonth)->startOfMonth()->toDateString()
+            ? Carbon::parse(strlen($yearMonth) === 7 ? $yearMonth.'-01' : $yearMonth)->startOfMonth()->toDateString()
             : now('UTC')->startOfMonth()->toDateString();
 
         return (int) $this->revenues()
@@ -113,7 +118,7 @@ class Project extends Model
      */
     public function monthCostPaisa(?string $yearMonth = null): int
     {
-        $row = app(\App\Services\ProfitAndLossService::class)
+        $row = app(ProfitAndLossService::class)
             ->projectRowForMonth($this, $yearMonth ?? now('UTC')->format('Y-m'));
 
         return (int) $row['total_expense_paisa'];
@@ -149,7 +154,7 @@ class Project extends Model
 
     public function acquisitionCostFormatted(): string
     {
-        return number_format($this->acquisition_cost_paisa / 100, 2).' PKR';
+        return Money::formatted((int) $this->acquisition_cost_paisa);
     }
 
     /**

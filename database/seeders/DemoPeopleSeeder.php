@@ -11,7 +11,6 @@ use App\Enums\PayRateType;
 use App\Enums\TaskStatus;
 use App\Enums\TaskType;
 use App\Models\Article;
-use App\Models\AttendanceDay;
 use App\Models\Link;
 use App\Models\LoginHistory;
 use App\Models\PayRate;
@@ -21,7 +20,9 @@ use App\Models\User;
 use App\Models\WorkLog;
 use App\Services\AttendanceService;
 use App\Services\LoginHistoryService;
+use App\Support\Currency;
 use App\Support\DisplayTimezone;
+use App\Support\Money;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 
@@ -44,7 +45,7 @@ class DemoPeopleSeeder extends Seeder
         $month = DisplayTimezone::now()->format('Y-m');
         $today = DisplayTimezone::today();
 
-        // Seed a few historical logins for staff (Karachi mornings)
+        // Seed a few historical logins for staff (local mornings)
         $loginDays = [
             DisplayTimezone::now()->subDays(5)->toDateString(),
             DisplayTimezone::now()->subDays(4)->toDateString(),
@@ -135,8 +136,8 @@ class DemoPeopleSeeder extends Seeder
                 'type' => PayRateType::MonthlySalary,
             ],
             [
-                'amount_paisa' => 80_000_00, // 80,000 PKR
-                'currency' => 'PKR',
+                'amount_paisa' => Money::toMinor('4000'),
+                'currency' => Currency::code(),
                 'is_active' => true,
                 'effective_from' => now()->subMonths(3)->toDateString(),
             ],
@@ -147,8 +148,8 @@ class DemoPeopleSeeder extends Seeder
                 'type' => PayRateType::PerArticle,
             ],
             [
-                'amount_paisa' => 5_000_00,
-                'currency' => 'PKR',
+                'amount_paisa' => Money::toMinor('40'),
+                'currency' => Currency::code(),
                 'is_active' => true,
             ],
         );
@@ -207,7 +208,7 @@ class DemoPeopleSeeder extends Seeder
                 'writer_id' => $staff->id,
                 'word_count_actual' => 1500,
                 'word_count_target' => 1500,
-                'cost_paisa' => 9_000_00,
+                'cost_paisa' => Money::toMinor('90'),
                 'approved_at' => $startUtc->copy()->addDays(4),
                 'submitted_at' => $startUtc->copy()->addDays(3),
                 'approved_by' => $supervisor?->id ?? $admin?->id,
@@ -228,7 +229,7 @@ class DemoPeopleSeeder extends Seeder
                 'type' => LinkType::GuestPost,
                 'live_status' => LinkLiveStatus::Live,
                 'workflow_status' => LinkWorkflowStatus::Approved,
-                'cost_paisa' => 6_500_00,
+                'cost_paisa' => Money::toMinor('65'),
                 'assigned_to' => $staff->id,
                 'created_by' => $staff->id,
                 'approved_by' => $supervisor?->id ?? $admin?->id,

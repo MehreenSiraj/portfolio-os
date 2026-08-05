@@ -93,7 +93,7 @@ fi
 mkdir -p "$DIST"
 rm -f "$DIST/app.zip" "$DIST/public.zip"
 
-STAGE="$(mktemp -d "${TMPDIR:-/tmp}/pinsa-package.XXXXXX")"
+STAGE="$(mktemp -d "${TMPDIR:-/tmp}/portfolio-os-package.XXXXXX")"
 cleanup_stage() {
   rm -rf "$STAGE"
 }

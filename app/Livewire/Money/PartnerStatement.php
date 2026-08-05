@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Policies\FinancePolicy;
 use App\Services\CsvExportService;
 use App\Services\PartnerLedgerService;
+use App\Support\Currency;
 use App\Support\Money;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
@@ -53,14 +54,16 @@ class PartnerStatement extends Component
             ->map(fn (PartnerLedgerEntry $e) => [
                 $e->id,
                 $e->type->value,
-                Money::paisaToMajor((int) $e->amount_paisa),
-                Money::paisaToMajor((int) $e->balance_after_paisa),
+                Money::fromMinor((int) $e->amount_paisa),
+                Money::fromMinor((int) $e->balance_after_paisa),
                 $e->entry_date->format('Y-m-d'),
                 $e->description,
             ]);
 
+        $code = strtolower(Currency::code());
+
         return $csv->download('partner-statement-'.$this->userId.'.csv', [
-            'id', 'type', 'amount_pkr', 'balance_after_pkr', 'date', 'description',
+            'id', 'type', 'amount_'.$code, 'balance_after_'.$code, 'date', 'description',
         ], $rows);
     }
 

@@ -5,16 +5,20 @@ namespace Database\Seeders;
 use App\Enums\DistributionStatus;
 use App\Enums\PartnerLedgerType;
 use App\Enums\RevenueSource;
+use App\Models\DistributionRun;
 use App\Models\Expense;
+use App\Models\PartnerLedgerEntry;
 use App\Models\PartnerProfile;
 use App\Models\Project;
 use App\Models\RecurringExpense;
+use App\Models\Revenue;
 use App\Models\User;
 use App\Services\DistributionService;
 use App\Services\ExpenseService;
 use App\Services\PartnerLedgerService;
 use App\Services\RevenueService;
 use App\Support\AppSettings;
+use App\Support\Currency;
 use App\Support\Money;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -24,8 +28,8 @@ class DemoMoneySeeder extends Seeder
     public function run(): void
     {
         AppSettings::set('fx_defaults', [
-            'USD_to_PKR' => '278.50',
-            'note' => 'Demo default FX for M5.',
+            Currency::fxKey() => Currency::defaultFxRate(),
+            'note' => 'Demo default '.Currency::fxLabel().' rate.',
         ]);
 
         $admin = User::query()->where('email', 'admin@example.com')->first();
@@ -60,29 +64,35 @@ class DemoMoneySeeder extends Seeder
         $month = now('UTC')->startOfMonth()->toDateString();
         $prev = now('UTC')->subMonth()->startOfMonth()->toDateString();
 
+        // Two different rates so the demo shows that each row keeps its own frozen rate.
+        $currentRate = Currency::defaultFxRate();
+        $priorRate = Money::fxRateFromE6(
+            (int) round(Money::fxRateToE6($currentRate) * 0.99)
+        );
+
         PartnerProfile::query()->updateOrCreate(
             ['user_id' => $partner->id],
             [
                 'payout_method' => 'Bank transfer',
-                'payout_details' => 'HBL · ****4521 (demo — not real)',
+                'payout_details' => 'Example Bank · ****4521 (demo — not a real account)',
                 'notes' => 'Demo partner payout profile',
                 'is_active' => true,
             ],
         );
 
         // Capital in (idempotent-ish: only if no capital yet)
-        if (! \App\Models\PartnerLedgerEntry::query()->where('user_id', $partner->id)->where('type', PartnerLedgerType::CapitalIn->value)->exists()) {
-            $ledger->recordCapitalIn($partner->id, 500_000_00, $admin, 'Seed seed capital', $prev);
+        if (! PartnerLedgerEntry::query()->where('user_id', $partner->id)->where('type', PartnerLedgerType::CapitalIn->value)->exists()) {
+            $ledger->recordCapitalIn($partner->id, Money::toMinor('20000'), $admin, 'Demo seed capital', $prev);
         }
 
-        if (! \App\Models\Revenue::query()->where('project_id', $alpha->id)->whereDate('period_month', $month)->exists()) {
+        if (! Revenue::query()->where('project_id', $alpha->id)->whereDate('period_month', $month)->exists()) {
             $revenues->create([
                 'project_id' => $alpha->id,
                 'period_month' => $month,
                 'source' => RevenueSource::Adsense->value,
                 'amount_usd' => '420.00',
-                'fx_rate' => '278.50',
-                'notes' => 'Demo AdSense current month',
+                'fx_rate' => $currentRate,
+                'notes' => 'Demo ad network revenue, current month',
             ], $admin);
 
             $revenues->create([
@@ -90,7 +100,7 @@ class DemoMoneySeeder extends Seeder
                 'period_month' => $month,
                 'source' => RevenueSource::Affiliate->value,
                 'amount_usd' => '80.00',
-                'fx_rate' => '278.50',
+                'fx_rate' => $currentRate,
                 'notes' => 'Demo affiliate',
             ], $admin);
 
@@ -99,19 +109,19 @@ class DemoMoneySeeder extends Seeder
                 'period_month' => $month,
                 'source' => RevenueSource::Adsense->value,
                 'amount_usd' => '150.00',
-                'fx_rate' => '278.50',
-                'notes' => 'Demo AdSense beta',
+                'fx_rate' => $currentRate,
+                'notes' => 'Demo ad network revenue, beta',
             ], $admin);
         }
 
-        if (! \App\Models\Revenue::query()->where('project_id', $alpha->id)->whereDate('period_month', $prev)->exists()) {
+        if (! Revenue::query()->where('project_id', $alpha->id)->whereDate('period_month', $prev)->exists()) {
             $revenues->create([
                 'project_id' => $alpha->id,
                 'period_month' => $prev,
                 'source' => RevenueSource::Adsense->value,
                 'amount_usd' => '390.00',
-                'fx_rate' => '277.00',
-                'notes' => 'Prior month AdSense (frozen older FX)',
+                'fx_rate' => $priorRate,
+                'notes' => 'Prior month, deliberately kept at an older frozen FX rate',
             ], $admin);
 
             $revenues->create([
@@ -119,7 +129,7 @@ class DemoMoneySeeder extends Seeder
                 'period_month' => $prev,
                 'source' => RevenueSource::Adsense->value,
                 'amount_usd' => '120.00',
-                'fx_rate' => '277.00',
+                'fx_rate' => $priorRate,
             ], $admin);
         }
 
@@ -130,7 +140,7 @@ class DemoMoneySeeder extends Seeder
             $expenses->createManual([
                 'is_shared' => true,
                 'expense_category_id' => $tools->id,
-                'amount' => '50000',
+                'amount' => '500',
                 'description' => 'Demo shared SaaS tools',
                 'expense_date' => $month,
                 'is_paid' => true,
@@ -143,7 +153,7 @@ class DemoMoneySeeder extends Seeder
                 'project_id' => $alpha->id,
                 'is_shared' => false,
                 'expense_category_id' => $hosting->id,
-                'amount' => '15000',
+                'amount' => '150',
                 'description' => 'Demo alpha hosting',
                 'expense_date' => $month,
                 'is_paid' => false,
@@ -154,7 +164,7 @@ class DemoMoneySeeder extends Seeder
             RecurringExpense::query()->create([
                 'is_shared' => true,
                 'expense_category_id' => app(ExpenseService::class)->ensureCategory('domain', 'Domain')->id,
-                'amount_paisa' => Money::pkrToPaisa('8000'),
+                'amount_paisa' => Money::toMinor('80'),
                 'description' => 'Monthly domain renewals pool',
                 'day_of_month' => 1,
                 'next_run_date' => now('UTC')->startOfMonth()->addMonth()->toDateString(),
@@ -164,7 +174,7 @@ class DemoMoneySeeder extends Seeder
         }
 
         // Draft distribution for previous month (not approved)
-        $hasDraft = \App\Models\DistributionRun::query()
+        $hasDraft = DistributionRun::query()
             ->whereDate('period_month', $prev)
             ->where('status', DistributionStatus::Draft->value)
             ->exists();

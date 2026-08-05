@@ -9,7 +9,10 @@ use App\Models\RecurringExpense;
 use App\Policies\FinancePolicy;
 use App\Services\CsvExportService;
 use App\Services\ExpenseService;
+use App\Support\Currency;
+use App\Support\DisplayTimezone;
 use App\Support\Money;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -82,9 +85,9 @@ class ExpensesIndex extends Component
         abort_unless(FinancePolicy::viewExpenses(Auth::user()), 403);
         app(ExpenseService::class)->seedSystemCategories();
         if ($this->monthFilter === '') {
-            $this->monthFilter = now('Asia/Karachi')->format('Y-m');
+            $this->monthFilter = DisplayTimezone::now()->format('Y-m');
         }
-        $this->expense_date = now('Asia/Karachi')->toDateString();
+        $this->expense_date = DisplayTimezone::today();
 
         if (request()->boolean('new') && FinancePolicy::manageExpenses(Auth::user())) {
             $this->create();
@@ -106,7 +109,7 @@ class ExpensesIndex extends Component
         $this->project_id = (string) ($e->project_id ?? '');
         $this->is_shared = (bool) $e->is_shared;
         $this->expense_category_id = (string) ($e->expense_category_id ?? '');
-        $this->amount = Money::paisaToMajor((int) $e->amount_paisa);
+        $this->amount = Money::fromMinor((int) $e->amount_paisa);
         $this->description = $e->description;
         $this->expense_date = $e->expense_date->format('Y-m-d');
         $this->notes = (string) $e->notes;
@@ -183,8 +186,9 @@ class ExpensesIndex extends Component
         ]);
 
         $day = (int) $this->rec_day;
-        $next = now('Asia/Karachi')->startOfMonth()->day(min($day, now('Asia/Karachi')->daysInMonth));
-        if ($next->lt(now('Asia/Karachi')->startOfDay())) {
+        $today = DisplayTimezone::now();
+        $next = $today->copy()->startOfMonth()->day(min($day, $today->daysInMonth));
+        if ($next->lt($today->copy()->startOfDay())) {
             $next = $next->addMonthNoOverflow()->day(min($day, $next->daysInMonth));
         }
 
@@ -192,7 +196,7 @@ class ExpensesIndex extends Component
             'project_id' => $this->rec_is_shared ? null : (int) $this->rec_project_id,
             'is_shared' => $this->rec_is_shared,
             'expense_category_id' => $this->rec_category_id !== '' ? (int) $this->rec_category_id : null,
-            'amount_paisa' => Money::pkrToPaisa($this->rec_amount),
+            'amount_paisa' => Money::toMinor($this->rec_amount),
             'description' => $this->rec_description,
             'day_of_month' => $day,
             'next_run_date' => $next->toDateString(),
@@ -212,14 +216,14 @@ class ExpensesIndex extends Component
                 $e->id,
                 $e->is_shared ? 'shared' : ($e->project?->domain ?? ''),
                 $e->category?->name,
-                Money::paisaToMajor((int) $e->amount_paisa),
+                Money::fromMinor((int) $e->amount_paisa),
                 $e->description,
                 $e->expense_date->format('Y-m-d'),
                 $e->is_paid ? 'paid' : 'unpaid',
             ]);
 
         return $csv->download('expenses.csv', [
-            'id', 'project_or_shared', 'category', 'amount_pkr', 'description', 'date', 'status',
+            'id', 'project_or_shared', 'category', 'amount_'.strtolower(Currency::code()), 'description', 'date', 'status',
         ], $rows);
     }
 
@@ -231,7 +235,7 @@ class ExpensesIndex extends Component
         $this->expense_category_id = '';
         $this->amount = '';
         $this->description = '';
-        $this->expense_date = now('Asia/Karachi')->toDateString();
+        $this->expense_date = DisplayTimezone::today();
         $this->notes = '';
         $this->is_paid = false;
     }
@@ -247,7 +251,7 @@ class ExpensesIndex extends Component
             }))
             ->when($this->monthFilter !== '', function ($q) {
                 $start = $this->monthFilter.'-01';
-                $end = \Carbon\Carbon::parse($start)->endOfMonth()->toDateString();
+                $end = Carbon::parse($start)->endOfMonth()->toDateString();
                 $q->whereBetween('expense_date', [$start, $end]);
             })
             ->when($this->paidFilter === 'paid', fn ($q) => $q->where('is_paid', true))

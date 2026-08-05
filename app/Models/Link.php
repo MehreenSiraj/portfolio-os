@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\LinkLiveStatus;
 use App\Enums\LinkType;
 use App\Enums\LinkWorkflowStatus;
+use App\Support\Money;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -116,6 +117,6 @@ class Link extends Model
 
     public function costFormatted(): string
     {
-        return number_format($this->cost_paisa / 100, 2).' PKR';
+        return Money::formatted((int) $this->cost_paisa);
     }
 }

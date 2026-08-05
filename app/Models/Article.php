@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ArticleStatus;
+use App\Support\Money;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -95,6 +96,6 @@ class Article extends Model
 
     public function costFormatted(): string
     {
-        return number_format($this->cost_paisa / 100, 2).' PKR';
+        return Money::formatted((int) $this->cost_paisa);
     }
 }

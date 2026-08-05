@@ -96,7 +96,7 @@
                                 <p class="flex flex-wrap items-center gap-2 text-sm font-medium text-ink">
                                     {{ $comment->user?->name }}
                                     <span class="font-mono text-[11px] font-normal text-faint tabular-nums">
-                                        {{ $comment->created_at?->timezone(\App\Support\AppSettings::get('display_timezone', 'Asia/Karachi'))->format('Y-m-d H:i') }}
+                                        {{ $comment->created_at?->timezone(\App\Support\DisplayTimezone::name())->format('Y-m-d H:i') }}
                                     </span>
                                 </p>
                                 <p class="mt-1 text-sm whitespace-pre-wrap text-ink-soft">{{ $comment->body }}</p>

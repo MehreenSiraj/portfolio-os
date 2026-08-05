@@ -32,7 +32,7 @@ return new class extends Migration
             $table->date('period_month')->index(); // first day of calendar month (UTC date)
             $table->string('source', 32)->index();
             $table->unsignedBigInteger('amount_usd_cents')->default(0);
-            $table->unsignedBigInteger('fx_rate_e6')->default(0); // PKR per 1 USD × 1e6
+            $table->unsignedBigInteger('fx_rate_e6')->default(0); // base currency per 1 source currency × 1e6
             $table->unsignedBigInteger('amount_pkr_paisa');
             $table->string('currency_input', 3)->default('USD');
             $table->text('notes')->nullable();

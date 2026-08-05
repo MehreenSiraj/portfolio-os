@@ -1,7 +1,7 @@
 # Deployment (Hostinger shared hosting via FTP)
 
 This app is packaged locally into two zip archives and uploaded by FTP.  
-There is **no Node**, Redis, Docker, or SSH requirement on the server. PHP 8.2+ and MySQL only.
+There is **no Node**, Redis, Docker, or SSH requirement on the server. PHP 8.3+ and MySQL only.
 
 ```
 /home/uXXXXXX/
@@ -174,7 +174,7 @@ Two jobs (paths are examples — use full path to `php` and `laravel_app`):
 */5 * * * * cd /home/uXXXXXX/laravel_app && /usr/bin/php artisan queue:work --stop-when-empty --max-time=280 >> /dev/null 2>&1
 ```
 
-Hostinger may require selecting the PHP version in the cron UI. Prefer CLI PHP 8.2+.
+Hostinger may require selecting the PHP version in the cron UI. Prefer CLI PHP 8.3+.
 
 Scheduled app commands (via `schedule:run`): credential expiry alerts, recurring tasks, recurring expenses.
 

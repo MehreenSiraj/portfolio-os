@@ -55,10 +55,10 @@
                 type="number"
                 step="0.01"
                 min="0"
-                suffix="PKR"
+                :suffix="\App\Support\Currency::code()"
                 wire:model="acquisition_cost"
                 :error="$errors->first('acquisition_cost')"
-                hint="Stored as integer paisa."
+                hint="Stored as integer minor units."
             />
             <x-select label="Status" wire:model="status" :error="$errors->first('status')">
                 @foreach ($statusOptions as $value => $label)
@@ -169,13 +169,13 @@
                             }">{{ $project->status->label() }}</x-badge>
                         </x-table.cell>
 
-                        <x-table.cell numeric muted>{{ number_format($project->monthRevenuePaisa() / 100, 0) }}</x-table.cell>
-                        <x-table.cell numeric muted>{{ number_format($project->monthCostPaisa() / 100, 0) }}</x-table.cell>
+                        <x-table.cell numeric muted>{{ \App\Support\Money::rounded($project->monthRevenuePaisa()) }}</x-table.cell>
+                        <x-table.cell numeric muted>{{ \App\Support\Money::rounded($project->monthCostPaisa()) }}</x-table.cell>
                         <x-table.cell numeric>
                             <x-money :paisa="$project->monthProfitPaisa()" signed />
                         </x-table.cell>
                         <x-table.cell numeric muted>{{ $project->openTasksCount() }}</x-table.cell>
-                        <x-table.cell numeric muted>{{ number_format($project->acquisition_cost_paisa / 100, 0) }}</x-table.cell>
+                        <x-table.cell numeric muted>{{ \App\Support\Money::rounded((int) $project->acquisition_cost_paisa) }}</x-table.cell>
 
                         <x-table.cell align="right" nowrap>
                             <div class="flex justify-end gap-0.5">

@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Policies\FinancePolicy;
 use App\Services\CsvExportService;
 use App\Services\PartnerLedgerService;
+use App\Support\Currency;
 use App\Support\Money;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
@@ -46,7 +47,7 @@ class PartnersIndex extends Component
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $paisa = Money::pkrToPaisa($this->amount);
+        $paisa = Money::toMinor($this->amount);
         if ($this->entry_type === 'capital_in') {
             $ledger->recordCapitalIn((int) $this->user_id, $paisa, Auth::user(), $this->notes ?: null);
             $this->dispatch('toast', message: 'Capital contribution recorded.', tone: 'success');
@@ -68,14 +69,16 @@ class PartnersIndex extends Component
                 $e->id,
                 $e->user?->name,
                 $e->type->value,
-                Money::paisaToMajor((int) $e->amount_paisa),
-                Money::paisaToMajor((int) $e->balance_after_paisa),
+                Money::fromMinor((int) $e->amount_paisa),
+                Money::fromMinor((int) $e->balance_after_paisa),
                 $e->entry_date->format('Y-m-d'),
                 $e->description,
             ]);
 
+        $code = strtolower(Currency::code());
+
         return $csv->download('partner-ledger.csv', [
-            'id', 'partner', 'type', 'amount_pkr', 'balance_after_pkr', 'date', 'description',
+            'id', 'partner', 'type', 'amount_'.$code, 'balance_after_'.$code, 'date', 'description',
         ], $rows);
     }
 

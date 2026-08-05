@@ -83,7 +83,7 @@
                     label="Amount"
                     wire:model="amount"
                     :error="$errors->first('amount')"
-                    suffix="PKR"
+                    :suffix="\App\Support\Currency::code()"
                     required
                 />
 
@@ -146,7 +146,7 @@
                     label="Amount"
                     wire:model="rec_amount"
                     :error="$errors->first('rec_amount')"
-                    suffix="PKR"
+                    :suffix="\App\Support\Currency::code()"
                     required
                 />
 
@@ -207,7 +207,7 @@
                         :headers="[
                             'Description',
                             ['label' => 'Next run', 'align' => 'right'],
-                            ['label' => 'PKR', 'align' => 'right'],
+                            ['label' => \App\Support\Currency::code(), 'align' => 'right'],
                         ]"
                     >
                         @foreach ($recurring as $r)
@@ -250,7 +250,7 @@
                         'Project',
                         'Category',
                         'Description',
-                        ['label' => 'PKR', 'align' => 'right'],
+                        ['label' => \App\Support\Currency::code(), 'align' => 'right'],
                         'Paid',
                     ],
                     $canManage ? [['label' => 'Actions', 'align' => 'right', 'width' => 'w-24']] : []

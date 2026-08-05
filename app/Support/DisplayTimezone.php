@@ -2,17 +2,24 @@
 
 namespace App\Support;
 
-use App\Models\User;
-use App\Support\AppSettings;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
-use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class DisplayTimezone
 {
+    /**
+     * Timezone everything is displayed in. Instants are always stored in UTC.
+     */
     public static function name(): string
     {
-        return (string) AppSettings::get('display_timezone', 'Asia/Karachi');
+        $fallback = (string) config('app.display_timezone', 'UTC');
+
+        try {
+            return (string) AppSettings::get('display_timezone', $fallback);
+        } catch (Throwable) {
+            return $fallback;
+        }
     }
 
     public static function now(): Carbon

@@ -78,7 +78,7 @@ class DatabaseBackupCommand extends Command
         $dbName = (string) DB::getDatabaseName();
         $key = 'Tables_in_'.$dbName;
 
-        $sql = "-- PinSA db:backup\n";
+        $sql = '-- '.config('app.name', 'Portfolio OS')." db:backup\n";
         $sql .= '-- Generated: '.now()->toIso8601String()."\n";
         $sql .= "SET FOREIGN_KEY_CHECKS=0;\n\n";
 

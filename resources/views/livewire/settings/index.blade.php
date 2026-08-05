@@ -33,15 +33,22 @@
                     label="Base currency"
                     wire:model="base_currency"
                     :error="$errors->first('base_currency')"
-                    hint="Reporting currency is PKR (integer paisa)."
+                    hint="ISO 4217 code, e.g. USD. Amounts are stored as integer minor units with {{ \App\Support\Currency::exponent() }} decimal place(s), set in config/money.php."
                     required
+                />
+
+                <x-input
+                    label="Currency symbol"
+                    wire:model="currency_symbol"
+                    :error="$errors->first('currency_symbol')"
+                    hint="Optional glyph shown alongside amounts, e.g. $ or €."
                 />
 
                 <x-input
                     label="Display timezone"
                     wire:model="display_timezone"
                     :error="$errors->first('display_timezone')"
-                    hint="Stored timestamps remain UTC."
+                    hint="IANA name, e.g. Europe/Berlin. Stored timestamps remain UTC."
                     required
                 />
 
@@ -50,7 +57,7 @@
                     label="Late arrival hour (local)"
                     wire:model="late_arrival_hour"
                     :error="$errors->first('late_arrival_hour')"
-                    hint="First login after this hour (0–23) counts as late. Default 10 = after 10:00 Asia/Karachi."
+                    :hint="'First login after this hour (0–23) counts as late, measured in '.\App\Support\DisplayTimezone::name().'.'"
                     min="0"
                     max="23"
                 />
@@ -65,14 +72,14 @@
             />
         </x-card>
 
-        <x-card title="FX defaults" subtitle="Placeholder rate used when recording new USD revenue." icon="revenue">
+        <x-card title="FX defaults" :subtitle="'Default rate pre-filled when recording new '.\App\Support\Currency::sourceCode().' revenue.'" icon="revenue">
             <div class="space-y-4">
                 <x-input
-                    label="USD → PKR rate"
-                    wire:model="fx_usd_to_pkr"
-                    :error="$errors->first('fx_usd_to_pkr')"
-                    suffix="PKR"
-                    hint="Each revenue row freezes its own fx_rate + amount_pkr, so changing this never rewrites history."
+                    :label="\App\Support\Currency::sourceCode().' → '.\App\Support\Currency::code().' rate'"
+                    wire:model="fx_rate"
+                    :error="$errors->first('fx_rate')"
+                    :suffix="\App\Support\Currency::code()"
+                    hint="Each revenue row freezes its own rate and converted amount, so changing this never rewrites history."
                 />
 
                 <x-textarea

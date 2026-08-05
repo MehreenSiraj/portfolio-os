@@ -16,7 +16,6 @@ use App\Services\ProfitAndLossService;
 use App\Services\ScorecardService;
 use App\Support\DisplayTimezone;
 use App\Support\Money;
-use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
 
@@ -89,11 +88,11 @@ class WhitelistReportService
                 $drops[] = [
                     'project_id' => $row['project_id'],
                     'domain' => $row['domain'],
-                    'this_month_revenue' => Money::paisaFormatted($curRev),
+                    'this_month_revenue' => Money::formatted($curRev),
                     'this_month_revenue_paisa' => $curRev,
-                    'prior_month_revenue' => Money::paisaFormatted($prevRev),
+                    'prior_month_revenue' => Money::formatted($prevRev),
                     'prior_month_revenue_paisa' => $prevRev,
-                    'delta' => Money::paisaFormatted($delta),
+                    'delta' => Money::formatted($delta),
                     'delta_paisa' => $delta,
                     'delta_pct' => $pct,
                 ];
@@ -109,8 +108,8 @@ class WhitelistReportService
                 'period_this' => $thisMonth,
                 'period_prior' => $priorMonth,
                 'sites_with_drop' => count($drops),
-                'portfolio_revenue_this' => Money::paisaFormatted((int) $current['totals']['revenue_paisa']),
-                'portfolio_revenue_prior' => Money::paisaFormatted((int) $prior['totals']['revenue_paisa']),
+                'portfolio_revenue_this' => Money::formatted((int) $current['totals']['revenue_paisa']),
+                'portfolio_revenue_prior' => Money::formatted((int) $prior['totals']['revenue_paisa']),
             ],
             'rows' => $drops,
             'narrative_seed' => count($drops) === 0
@@ -211,25 +210,25 @@ class WhitelistReportService
                 'project_count' => $projects->count(),
                 'projects_by_status' => $byStatus,
                 'open_tasks' => $openTasks,
-                'revenue' => $pnl ? Money::paisaFormatted((int) $pnl['totals']['revenue_paisa']) : null,
+                'revenue' => $pnl ? Money::formatted((int) $pnl['totals']['revenue_paisa']) : null,
                 'revenue_paisa' => $pnl ? (int) $pnl['totals']['revenue_paisa'] : null,
-                'expenses' => $pnl ? Money::paisaFormatted((int) $pnl['totals']['total_expense_paisa']) : null,
+                'expenses' => $pnl ? Money::formatted((int) $pnl['totals']['total_expense_paisa']) : null,
                 'expenses_paisa' => $pnl ? (int) $pnl['totals']['total_expense_paisa'] : null,
-                'net_profit' => $pnl ? Money::paisaFormatted((int) $pnl['totals']['net_profit_paisa']) : null,
+                'net_profit' => $pnl ? Money::formatted((int) $pnl['totals']['net_profit_paisa']) : null,
                 'net_profit_paisa' => $pnl ? (int) $pnl['totals']['net_profit_paisa'] : null,
             ],
             'rows' => $pnl
                 ? collect($pnl['projects'])->take(20)->map(fn ($r) => [
                     'domain' => $r['domain'],
-                    'revenue' => Money::paisaFormatted((int) $r['revenue_paisa']),
-                    'net_profit' => Money::paisaFormatted((int) $r['net_profit_paisa']),
+                    'revenue' => Money::formatted((int) $r['revenue_paisa']),
+                    'net_profit' => Money::formatted((int) $r['net_profit_paisa']),
                 ])->all()
                 : $projects->take(20)->map(fn (Project $p) => [
                     'domain' => $p->domain,
                     'status' => $p->status->value,
                 ])->all(),
             'narrative_seed' => 'Portfolio for '.$month.': '.$projects->count().' project(s)'
-                .($pnl ? ', net '.Money::paisaFormatted((int) $pnl['totals']['net_profit_paisa']) : '').'.',
+                .($pnl ? ', net '.Money::formatted((int) $pnl['totals']['net_profit_paisa']) : '').'.',
         ];
     }
 
@@ -270,11 +269,13 @@ class WhitelistReportService
             return (int) round($g->sum('amount_paisa') / $months);
         });
 
+        $largeThreshold = Money::toMinor(config('money.large_expense_threshold', '5000'));
+
         $spikes = [];
         foreach ($thisMonth as $expense) {
             $avg = (int) ($avgByCategory[$expense->expense_category_id] ?? 0);
             $isSpike = $avg > 0 && $expense->amount_paisa >= (int) round($avg * 1.5);
-            $isLarge = $expense->amount_paisa >= 50_000_00; // ≥ 50k PKR
+            $isLarge = $expense->amount_paisa >= $largeThreshold;
             if (! $isSpike && ! $isLarge) {
                 continue;
             }
@@ -283,10 +284,10 @@ class WhitelistReportService
                 'description' => $expense->description,
                 'project' => $expense->is_shared ? 'Shared' : ($expense->project?->domain ?? '—'),
                 'category' => $expense->category?->name ?? 'Uncategorized',
-                'amount' => Money::paisaFormatted((int) $expense->amount_paisa),
+                'amount' => Money::formatted((int) $expense->amount_paisa),
                 'amount_paisa' => (int) $expense->amount_paisa,
                 'date' => $expense->expense_date?->toDateString(),
-                'vs_category_monthly_avg' => $avg > 0 ? Money::paisaFormatted($avg) : null,
+                'vs_category_monthly_avg' => $avg > 0 ? Money::formatted($avg) : null,
                 'flag' => $isSpike ? 'above_category_avg' : 'large_absolute',
             ];
         }
@@ -300,14 +301,14 @@ class WhitelistReportService
             'title' => 'Expense spikes ('.DisplayTimezone::now()->format('Y-m').')',
             'figures' => [
                 'period' => DisplayTimezone::now()->format('Y-m'),
-                'total_expenses_this_month' => Money::paisaFormatted($totalThis),
+                'total_expenses_this_month' => Money::formatted($totalThis),
                 'total_expenses_this_month_paisa' => $totalThis,
                 'flagged_count' => count($spikes),
             ],
             'rows' => array_slice($spikes, 0, 25),
             'narrative_seed' => count($spikes) === 0
                 ? 'No material expense spikes flagged for the current month in your scope.'
-                : count($spikes).' expense line(s) flagged as spikes; month total '.Money::paisaFormatted($totalThis).'.',
+                : count($spikes).' expense line(s) flagged as spikes; month total '.Money::formatted($totalThis).'.',
         ];
     }
 
@@ -395,9 +396,9 @@ class WhitelistReportService
             ->map(fn ($r, $i) => [
                 'rank' => $i + 1,
                 'domain' => $r['domain'],
-                'revenue' => Money::paisaFormatted((int) $r['revenue_paisa']),
-                'expenses' => Money::paisaFormatted((int) $r['total_expense_paisa']),
-                'net_profit' => Money::paisaFormatted((int) $r['net_profit_paisa']),
+                'revenue' => Money::formatted((int) $r['revenue_paisa']),
+                'expenses' => Money::formatted((int) $r['total_expense_paisa']),
+                'net_profit' => Money::formatted((int) $r['net_profit_paisa']),
                 'net_profit_paisa' => (int) $r['net_profit_paisa'],
             ])
             ->all();
@@ -407,7 +408,7 @@ class WhitelistReportService
             'title' => 'Top performing sites by profit ('.$month.')',
             'figures' => [
                 'period' => $month,
-                'portfolio_net' => Money::paisaFormatted((int) $report['totals']['net_profit_paisa']),
+                'portfolio_net' => Money::formatted((int) $report['totals']['net_profit_paisa']),
             ],
             'rows' => $rows,
             'narrative_seed' => count($rows) === 0

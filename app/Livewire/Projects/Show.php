@@ -5,14 +5,13 @@ namespace App\Livewire\Projects;
 use App\Enums\CredentialType;
 use App\Enums\ProjectStatus;
 use App\Models\Credential;
-use App\Models\Media;
 use App\Models\Project;
 use App\Models\User;
 use App\Services\CredentialVaultService;
 use App\Services\ProjectOwnershipService;
+use App\Support\Money;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
@@ -96,7 +95,7 @@ class Show extends Component
         $this->niche = (string) $this->project->niche;
         $this->cms = (string) $this->project->cms;
         $this->start_date = $this->project->start_date?->format('Y-m-d') ?? '';
-        $this->acquisition_cost = number_format($this->project->acquisition_cost_paisa / 100, 2, '.', '');
+        $this->acquisition_cost = Money::fromMinor((int) $this->project->acquisition_cost_paisa);
         $this->status = $this->project->status->value;
         $this->notes = (string) $this->project->notes;
         $this->owners = $this->project->owners->map(fn (User $u) => [
@@ -138,7 +137,7 @@ class Show extends Component
             'niche' => $validated['niche'] ?: null,
             'cms' => $validated['cms'] ?: null,
             'start_date' => $validated['start_date'] ?: null,
-            'acquisition_cost_paisa' => (int) round(((float) $validated['acquisition_cost']) * 100),
+            'acquisition_cost_paisa' => Money::toMinor($validated['acquisition_cost']),
             'status' => $validated['status'],
             'notes' => $validated['notes'] ?: null,
         ]);

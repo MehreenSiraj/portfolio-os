@@ -69,6 +69,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Display Timezone
+    |--------------------------------------------------------------------------
+    |
+    | Instants are always STORED in UTC. This is the timezone they are rendered
+    | in, and the one that defines "today" and "this month" for attendance and
+    | reporting. Settings → General overrides it at runtime; this is the value
+    | used before any setting is saved.
+    |
+    */
+
+    'display_timezone' => env('APP_DISPLAY_TIMEZONE', 'UTC'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------
     |

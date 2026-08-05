@@ -97,7 +97,7 @@ try {
     if (Test-Path $AppZip) { Remove-Item $AppZip -Force }
     if (Test-Path $PublicZip) { Remove-Item $PublicZip -Force }
 
-    $Stage = Join-Path ([System.IO.Path]::GetTempPath()) ("pinsa-package-" + [guid]::NewGuid().ToString("n"))
+    $Stage = Join-Path ([System.IO.Path]::GetTempPath()) ("portfolio-os-package-" + [guid]::NewGuid().ToString("n"))
     $StageApp = Join-Path $Stage "app"
     New-Item -ItemType Directory -Force -Path $StageApp | Out-Null
 

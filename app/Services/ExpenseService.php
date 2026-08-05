@@ -10,12 +10,12 @@ use App\Models\ExpenseCategory;
 use App\Models\Link;
 use App\Models\RecurringExpense;
 use App\Models\User;
+use App\Support\Currency;
 use App\Support\Money;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
 
 /**
@@ -85,14 +85,14 @@ class ExpenseService
 
         $amount = isset($data['amount_paisa'])
             ? (int) $data['amount_paisa']
-            : Money::pkrToPaisa($data['amount'] ?? 0);
+            : Money::toMinor($data['amount'] ?? 0);
 
         $expense = Expense::query()->create([
             'project_id' => $projectId ?: null,
             'is_shared' => $isShared,
             'expense_category_id' => $data['expense_category_id'] ?? null,
             'amount_paisa' => max(0, $amount),
-            'currency' => $data['currency'] ?? 'PKR',
+            'currency' => $data['currency'] ?? Currency::code(),
             'description' => $data['description'],
             'expense_date' => $data['expense_date'],
             'created_by' => $actor->id,
@@ -146,7 +146,7 @@ class ExpenseService
         $amount = isset($data['amount_paisa'])
             ? (int) $data['amount_paisa']
             : (array_key_exists('amount', $data)
-                ? Money::pkrToPaisa($data['amount'])
+                ? Money::toMinor($data['amount'])
                 : (int) $expense->amount_paisa);
 
         $expense->update([
@@ -318,6 +318,7 @@ class ExpenseService
 
     /**
      * @template T of Model
+     *
      * @param  T  $source
      */
     protected function createOnce(
@@ -371,7 +372,7 @@ class ExpenseService
                 'is_shared' => false,
                 'expense_category_id' => $category->id,
                 'amount_paisa' => max(0, $amountPaisa),
-                'currency' => 'PKR',
+                'currency' => Currency::code(),
                 'description' => $description,
                 'expense_date' => $expenseDate,
                 'source_type' => $source::class,

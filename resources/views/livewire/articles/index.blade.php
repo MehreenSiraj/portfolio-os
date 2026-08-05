@@ -58,7 +58,7 @@
                 'Writer',
                 'Status',
                 ['label' => 'Words', 'align' => 'right'],
-                ['label' => 'PKR', 'align' => 'right'],
+                ['label' => \App\Support\Currency::code(), 'align' => 'right'],
                 ['label' => 'Actions', 'sr' => true, 'align' => 'right', 'width' => 'relative'],
             ]">
                 @foreach ($articles as $article)
@@ -175,7 +175,7 @@
                 min="0"
                 wire:model="cost"
                 :error="$errors->first('cost')"
-                suffix="PKR"
+                :suffix="\App\Support\Currency::code()"
             />
 
             <div class="sm:col-span-2">

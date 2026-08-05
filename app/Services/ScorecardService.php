@@ -11,6 +11,7 @@ use App\Models\PayRate;
 use App\Models\Task;
 use App\Models\User;
 use App\Support\DisplayTimezone;
+use App\Support\Money;
 
 class ScorecardService
 {
@@ -153,7 +154,7 @@ class ScorecardService
                 'cost_paisa' => $linkCostPaisa,
             ],
             'output_cost_paisa' => $outputCostPaisa,
-            'output_cost_formatted' => number_format($outputCostPaisa / 100, 2).' PKR',
+            'output_cost_formatted' => Money::formatted($outputCostPaisa),
             'pay_rates' => $payRates,
         ];
     }

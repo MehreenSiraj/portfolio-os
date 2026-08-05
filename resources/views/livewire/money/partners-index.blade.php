@@ -39,7 +39,7 @@
                     label="Amount"
                     wire:model="amount"
                     :error="$errors->first('amount')"
-                    suffix="PKR"
+                    :suffix="\App\Support\Currency::code()"
                     required
                 />
 
@@ -74,7 +74,7 @@
                 'Partner',
                 'Email',
                 'Payout',
-                ['label' => 'Balance PKR', 'align' => 'right'],
+                ['label' => 'Balance '.\App\Support\Currency::code(), 'align' => 'right'],
                 ['label' => '', 'align' => 'right', 'width' => 'w-32'],
             ]"
         >

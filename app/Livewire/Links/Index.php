@@ -9,6 +9,7 @@ use App\Models\Link;
 use App\Models\Project;
 use App\Models\User;
 use App\Services\LinkWorkflowService;
+use App\Support\Money;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -111,7 +112,7 @@ class Index extends Component
         $project = Project::query()->find($this->projectFilter);
         if ($project) {
             $this->monthly_link_target = (string) $project->monthly_link_target;
-            $this->monthly_link_budget = number_format($project->monthly_link_budget_paisa / 100, 2, '.', '');
+            $this->monthly_link_budget = Money::fromMinor((int) $project->monthly_link_budget_paisa);
         }
     }
 
@@ -130,7 +131,7 @@ class Index extends Component
 
         $project->update([
             'monthly_link_target' => (int) $validated['monthly_link_target'],
-            'monthly_link_budget_paisa' => (int) round(((float) $validated['monthly_link_budget']) * 100),
+            'monthly_link_budget_paisa' => Money::toMinor($validated['monthly_link_budget']),
         ]);
 
         $this->editingBudget = false;
@@ -159,7 +160,7 @@ class Index extends Component
         $this->target_page = $link->target_page;
         $this->anchor_text = $link->anchor_text;
         $this->type = $link->type->value;
-        $this->cost = number_format($link->cost_paisa / 100, 2, '.', '');
+        $this->cost = Money::fromMinor((int) $link->cost_paisa);
         $this->link_date = $link->link_date?->format('Y-m-d') ?? '';
         $this->live_status = $link->live_status->value;
         $this->assigned_to = (string) ($link->assigned_to ?? '');
@@ -202,7 +203,7 @@ class Index extends Component
             'target_page' => $validated['target_page'],
             'anchor_text' => $validated['anchor_text'],
             'type' => $validated['type'],
-            'cost_paisa' => (int) round(((float) $validated['cost']) * 100),
+            'cost_paisa' => Money::toMinor($validated['cost']),
             'link_date' => $validated['link_date'] ?: null,
             'live_status' => $validated['live_status'],
             'assigned_to' => $validated['assigned_to'] ?: null,

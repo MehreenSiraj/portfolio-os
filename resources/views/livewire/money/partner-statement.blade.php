@@ -25,7 +25,7 @@
             icon="partners"
             hint="owed to the partner after the latest entry"
         >
-            <x-money :paisa="$balance" size="lg" currency="PKR" signed />
+            <x-money :paisa="$balance" size="lg" :currency="\App\Support\Currency::code()" signed />
         </x-stat>
 
         <x-stat

@@ -7,6 +7,7 @@ use App\Models\Project;
 use App\Models\User;
 use App\Services\ProjectOwnershipService;
 use App\Services\SetupChecklistService;
+use App\Support\Money;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -40,7 +41,7 @@ class Index extends Component
 
     public string $start_date = '';
 
-    /** PKR major units string for form input, stored as paisa. */
+    /** Base-currency major units string for form input, stored as minor units. */
     public string $acquisition_cost = '0';
 
     public string $status = 'setup';
@@ -93,7 +94,7 @@ class Index extends Component
         $this->niche = (string) $project->niche;
         $this->cms = (string) $project->cms;
         $this->start_date = $project->start_date?->format('Y-m-d') ?? '';
-        $this->acquisition_cost = number_format($project->acquisition_cost_paisa / 100, 2, '.', '');
+        $this->acquisition_cost = Money::fromMinor((int) $project->acquisition_cost_paisa);
         $this->status = $project->status->value;
         $this->notes = (string) $project->notes;
         $this->owners = $project->owners->map(fn (User $u) => [
@@ -143,7 +144,7 @@ class Index extends Component
             'owners.*.share_percent' => ['required', 'numeric', 'min:0.01', 'max:100'],
         ]);
 
-        $paisa = (int) round(((float) $validated['acquisition_cost']) * 100);
+        $paisa = Money::toMinor($validated['acquisition_cost']);
 
         $ownerRows = collect($validated['owners'])
             ->map(fn (array $row) => [

@@ -8,6 +8,8 @@ use App\Models\Revenue;
 use App\Policies\FinancePolicy;
 use App\Services\CsvExportService;
 use App\Services\RevenueService;
+use App\Support\Currency;
+use App\Support\DisplayTimezone;
 use App\Support\Money;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
@@ -60,7 +62,7 @@ class RevenuesIndex extends Component
     {
         abort_unless(FinancePolicy::viewRevenue(Auth::user()), 403);
         if ($this->monthFilter === '') {
-            $this->monthFilter = now('Asia/Karachi')->format('Y-m');
+            $this->monthFilter = DisplayTimezone::now()->format('Y-m');
         }
         $this->period_month = $this->monthFilter;
         $service = app(RevenueService::class);
@@ -91,7 +93,7 @@ class RevenuesIndex extends Component
         $this->project_id = (string) $row->project_id;
         $this->period_month = $row->period_month->format('Y-m');
         $this->source = $row->source->value;
-        $this->amount_usd = Money::paisaToMajor((int) $row->amount_usd_cents);
+        $this->amount_usd = Money::fromSourceMinor((int) $row->amount_usd_cents);
         $this->fx_rate = Money::fxRateFromE6((int) $row->fx_rate_e6);
         $this->notes = (string) $row->notes;
         $this->showForm = true;
@@ -171,14 +173,18 @@ class RevenuesIndex extends Component
                 $r->project?->domain,
                 $r->period_month->format('Y-m'),
                 $r->source->value,
-                Money::paisaToMajor((int) $r->amount_usd_cents),
+                Money::fromSourceMinor((int) $r->amount_usd_cents),
                 Money::fxRateFromE6((int) $r->fx_rate_e6),
-                Money::paisaToMajor((int) $r->amount_pkr_paisa),
+                Money::fromMinor((int) $r->amount_pkr_paisa),
                 $r->notes,
             ]);
 
         return $csv->download('revenues.csv', [
-            'id', 'domain', 'period_month', 'source', 'amount_usd', 'fx_rate', 'amount_pkr', 'notes',
+            'id', 'domain', 'period_month', 'source',
+            'amount_'.strtolower(Currency::sourceCode()),
+            'fx_rate',
+            'amount_'.strtolower(Currency::code()),
+            'notes',
         ], $rows);
     }
 
@@ -186,7 +192,7 @@ class RevenuesIndex extends Component
     {
         $this->editingId = null;
         $this->project_id = $this->projectFilter;
-        $this->period_month = $this->monthFilter ?: now('Asia/Karachi')->format('Y-m');
+        $this->period_month = $this->monthFilter ?: DisplayTimezone::now()->format('Y-m');
         $this->source = 'adsense';
         $this->amount_usd = '';
         $this->fx_rate = Money::fxRateFromE6(app(RevenueService::class)->defaultFxRateE6());

@@ -4,59 +4,83 @@ namespace App\Support;
 
 /**
  * Integer money helpers — never float intermediate for persisted amounts.
+ *
+ * Amounts are stored as minor units of the configured currency (config/money.php).
+ * "Minor units" means cents, pence, paisa, etc. — whatever `exponent` says.
  */
 class Money
 {
     public const FX_SCALE = 1_000_000;
 
     /**
-     * PKR major units string → paisa.
+     * Base-currency major units string → minor units.
      */
-    public static function pkrToPaisa(string|float|int $major): int
+    public static function toMinor(string|float|int $major, ?int $exponent = null): int
     {
-        $normalized = is_string($major)
-            ? str_replace([',', ' '], '', trim($major))
-            : (string) $major;
-
-        if ($normalized === '' || ! is_numeric($normalized)) {
-            return 0;
-        }
-
-        // Avoid float: split at decimal point
-        if (! str_contains($normalized, '.')) {
-            return (int) $normalized * 100;
-        }
-
-        [$whole, $frac] = explode('.', $normalized, 2);
-        $frac = substr(str_pad(preg_replace('/\D/', '', $frac) ?? '', 2, '0'), 0, 2);
-        $sign = str_starts_with($whole, '-') ? -1 : 1;
-        $whole = ltrim($whole, '+-');
-
-        return $sign * (((int) $whole * 100) + (int) $frac);
-    }
-
-    public static function paisaToMajor(int $paisa): string
-    {
-        $sign = $paisa < 0 ? '-' : '';
-        $abs = abs($paisa);
-
-        return $sign.number_format($abs / 100, 2, '.', '');
-    }
-
-    public static function paisaFormatted(int $paisa, string $currency = 'PKR'): string
-    {
-        $sign = $paisa < 0 ? '-' : '';
-        $abs = abs($paisa);
-
-        return $sign.number_format($abs / 100, 2).' '.$currency;
+        return static::parseMinor($major, $exponent ?? Currency::exponent());
     }
 
     /**
-     * USD major → cents.
+     * Source-currency major units string → minor units.
      */
-    public static function usdToCents(string|float|int $major): int
+    public static function sourceToMinor(string|float|int $major): int
     {
-        return self::pkrToPaisa($major); // same 2dp minor units
+        return static::parseMinor($major, Currency::sourceExponent());
+    }
+
+    /**
+     * Minor units → plain major-unit string ("1234.56"), no grouping, no code.
+     */
+    public static function fromMinor(int $minor, ?int $exponent = null): string
+    {
+        $exponent ??= Currency::exponent();
+        $sign = $minor < 0 ? '-' : '';
+        $abs = abs($minor);
+
+        if ($exponent === 0) {
+            return $sign.$abs;
+        }
+
+        $subunits = 10 ** $exponent;
+
+        return $sign.intdiv($abs, $subunits).'.'.str_pad((string) ($abs % $subunits), $exponent, '0', STR_PAD_LEFT);
+    }
+
+    public static function fromSourceMinor(int $minor): string
+    {
+        return static::fromMinor($minor, Currency::sourceExponent());
+    }
+
+    /**
+     * Minor units → grouped, currency-suffixed display string ("1,234.56 USD").
+     */
+    public static function formatted(int $minor, ?string $currency = null, ?int $exponent = null): string
+    {
+        $exponent ??= Currency::exponent();
+        $currency ??= Currency::code();
+
+        $sign = $minor < 0 ? '-' : '';
+        $abs = abs($minor);
+        $subunits = 10 ** $exponent;
+
+        $amount = number_format(intdiv($abs, $subunits));
+        if ($exponent > 0) {
+            $amount .= '.'.str_pad((string) ($abs % $subunits), $exponent, '0', STR_PAD_LEFT);
+        }
+
+        return trim($sign.$amount.' '.$currency);
+    }
+
+    /**
+     * Minor units → grouped whole major units ("1,235"), for compact stat tiles.
+     */
+    public static function rounded(int $minor): string
+    {
+        $subunits = Currency::subunits();
+        $sign = $minor < 0 ? '-' : '';
+        $abs = abs($minor);
+
+        return $sign.number_format(intdiv($abs + intdiv($subunits, 2), $subunits));
     }
 
     /**
@@ -64,11 +88,9 @@ class Money
      */
     public static function fxRateToE6(string|float|int $rate): int
     {
-        $normalized = is_string($rate)
-            ? str_replace([',', ' '], '', trim($rate))
-            : (string) $rate;
+        $normalized = static::normalize($rate);
 
-        if ($normalized === '' || ! is_numeric($normalized)) {
+        if ($normalized === null) {
             return 0;
         }
 
@@ -96,21 +118,31 @@ class Money
     }
 
     /**
-     * Convert USD cents × frozen FX rate → PKR paisa.
-     * 100 cents (= $1) × rate PKR/USD = rate × 100 paisa when rate is major/major.
-     * paisa = cents * (rate_e6 / FX_SCALE)  with integer arithmetic:
-     *         = (cents * rate_e6) / FX_SCALE  (half-up)
+     * Source-currency minor units × frozen FX rate → base-currency minor units.
+     *
+     * base = source_minor × (rate_e6 / FX_SCALE) × (base_subunits / source_subunits)
+     *
+     * Kept in integer arithmetic and rounded half-up. The subunit ratio is only
+     * applied when the two currencies differ in exponent, so the common case
+     * keeps its full integer headroom.
      */
-    public static function usdCentsToPkrPaisa(int $usdCents, int $fxRateE6): int
+    public static function sourceMinorToBaseMinor(int $sourceMinor, int $fxRateE6): int
     {
-        if ($usdCents === 0 || $fxRateE6 === 0) {
+        if ($sourceMinor === 0 || $fxRateE6 === 0) {
             return 0;
         }
 
-        $product = $usdCents * $fxRateE6;
-        $half = intdiv(self::FX_SCALE, 2);
+        $baseSubunits = Currency::subunits();
+        $sourceSubunits = Currency::sourceSubunits();
 
-        return intdiv($product + $half, self::FX_SCALE);
+        if ($baseSubunits === $sourceSubunits) {
+            $baseSubunits = $sourceSubunits = 1;
+        }
+
+        $numerator = $sourceMinor * $fxRateE6 * $baseSubunits;
+        $denominator = self::FX_SCALE * $sourceSubunits;
+
+        return intdiv($numerator + intdiv($denominator, 2), $denominator);
     }
 
     /**
@@ -125,5 +157,45 @@ class Money
         $product = $amount * $bps;
 
         return intdiv($product + 5000, 10000);
+    }
+
+    protected static function parseMinor(string|float|int $major, int $exponent): int
+    {
+        $normalized = static::normalize($major);
+
+        if ($normalized === null) {
+            return 0;
+        }
+
+        $subunits = 10 ** $exponent;
+
+        if (! str_contains($normalized, '.')) {
+            return (int) $normalized * $subunits;
+        }
+
+        [$whole, $frac] = explode('.', $normalized, 2);
+        $sign = str_starts_with($whole, '-') ? -1 : 1;
+        $whole = ltrim($whole, '+-');
+
+        if ($exponent === 0) {
+            return $sign * (int) $whole;
+        }
+
+        $frac = substr(str_pad(preg_replace('/\D/', '', $frac) ?? '', $exponent, '0'), 0, $exponent);
+
+        return $sign * (((int) $whole * $subunits) + (int) $frac);
+    }
+
+    protected static function normalize(string|float|int $value): ?string
+    {
+        $normalized = is_string($value)
+            ? str_replace([',', ' '], '', trim($value))
+            : (string) $value;
+
+        if ($normalized === '' || ! is_numeric($normalized)) {
+            return null;
+        }
+
+        return $normalized;
     }
 }

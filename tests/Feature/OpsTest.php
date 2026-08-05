@@ -76,11 +76,11 @@ it('runs storage-link ops and ensures public storage path exists', function () {
 it('serves public storage files via media fallback route', function () {
     $dir = storage_path('app/public/ops-test');
     File::ensureDirectoryExists($dir);
-    File::put($dir.'/hello.txt', 'pinsa-public-fallback');
+    File::put($dir.'/hello.txt', 'public-disk-fallback');
 
     $response = $this->get('/media/public/ops-test/hello.txt');
     $response->assertOk();
-    expect($response->streamedContent())->toBe('pinsa-public-fallback');
+    expect($response->streamedContent())->toBe('public-disk-fallback');
 
     $this->get('/media/public/../private/secret.txt')
         ->assertNotFound();

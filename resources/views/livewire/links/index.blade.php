@@ -60,8 +60,8 @@
                 <x-progress
                     :value="$monthSpend"
                     :max="max(1, (int) $budgetProject->monthly_link_budget_paisa)"
-                    label="Budget used (PKR)"
-                    caption="{{ number_format($monthSpend / 100, 0) }} / {{ number_format($budgetProject->monthly_link_budget_paisa / 100, 0) }}"
+                    :label="'Budget used ('.\App\Support\Currency::code().')'"
+                    caption="{{ \App\Support\Money::rounded((int) $monthSpend) }} / {{ \App\Support\Money::rounded((int) $budgetProject->monthly_link_budget_paisa) }}"
                     :tone="$budgetProject->monthly_link_budget_paisa > 0 && $monthSpend > $budgetProject->monthly_link_budget_paisa ? 'danger' : 'accent'"
                 />
             </div>
@@ -83,7 +83,7 @@
                         min="0"
                         wire:model="monthly_link_budget"
                         :error="$errors->first('monthly_link_budget')"
-                        suffix="PKR"
+                        :suffix="\App\Support\Currency::code()"
                     />
                     <div class="flex items-end">
                         <x-button type="submit" size="sm" variant="secondary" target="saveBudget">Save plan</x-button>
@@ -114,7 +114,7 @@
                 'Target',
                 ['label' => 'DR / DA', 'align' => 'right'],
                 ['label' => 'Date', 'align' => 'right'],
-                ['label' => 'PKR', 'align' => 'right'],
+                ['label' => \App\Support\Currency::code(), 'align' => 'right'],
                 'Status',
                 ['label' => 'Actions', 'sr' => true, 'align' => 'right', 'width' => 'relative'],
             ]">
@@ -212,7 +212,7 @@
                 @endforeach
             </x-select>
 
-            <x-input label="Cost" type="number" step="0.01" min="0" wire:model="cost" :error="$errors->first('cost')" suffix="PKR" />
+            <x-input label="Cost" type="number" step="0.01" min="0" wire:model="cost" :error="$errors->first('cost')" :suffix="\App\Support\Currency::code()" />
             <x-input label="Date" type="date" wire:model="link_date" :error="$errors->first('link_date')" />
 
             <x-select label="Live status" wire:model="live_status" :error="$errors->first('live_status')">

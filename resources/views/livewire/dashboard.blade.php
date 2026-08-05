@@ -1,5 +1,5 @@
 @php
-    $tz = \App\Support\AppSettings::get('display_timezone', 'Asia/Karachi');
+    $tz = \App\Support\DisplayTimezone::name();
     $today = now($tz);
     $canSeeProfit = (bool) auth()->user()?->hasPermission('pnl.view');
     $monthProfit = $monthRevenuePlaceholder - $monthCostPlaceholder;
@@ -74,19 +74,19 @@
                 @if ($canSeeProfit)
                     <x-stat
                         label="Profit this month"
-                        :value="number_format($monthProfit / 100, 0)"
+                        :value="\App\Support\Money::rounded($monthProfit)"
                         :tone="$monthProfit >= 0 ? 'success' : 'danger'"
                         icon="pnl"
-                        :hint="'PKR · '.number_format($monthRevenuePlaceholder / 100, 0).' in, '.number_format($monthCostPlaceholder / 100, 0).' out'"
+                        :hint="\App\Support\Currency::code().' · '.\App\Support\Money::rounded($monthRevenuePlaceholder).' in, '.\App\Support\Money::rounded($monthCostPlaceholder).' out'"
                         :href="route('money.pnl')"
                     />
                 @else
                     <x-stat
                         label="Revenue this month"
-                        :value="number_format($monthRevenuePlaceholder / 100, 0)"
+                        :value="\App\Support\Money::rounded($monthRevenuePlaceholder)"
                         tone="accent"
                         icon="revenue"
-                        hint="PKR · across your sites"
+                        :hint="\App\Support\Currency::code().' · across your sites'"
                     />
                 @endif
             @endif

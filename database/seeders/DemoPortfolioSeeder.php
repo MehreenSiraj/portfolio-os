@@ -8,6 +8,7 @@ use App\Models\Credential;
 use App\Models\Project;
 use App\Models\User;
 use App\Services\ProjectOwnershipService;
+use App\Support\Money;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -57,7 +58,7 @@ class DemoPortfolioSeeder extends Seeder
                 'niche' => 'Finance tutorials',
                 'cms' => 'WordPress',
                 'start_date' => now()->subMonths(8)->toDateString(),
-                'acquisition_cost_paisa' => 250_000_00, // 250,000 PKR
+                'acquisition_cost_paisa' => Money::toMinor('25000'),
                 'status' => ProjectStatus::Monetized,
                 'notes' => 'Demo flagship site for Milestone 2 walkthrough.',
             ],
@@ -69,7 +70,7 @@ class DemoPortfolioSeeder extends Seeder
                 'niche' => 'Tech reviews',
                 'cms' => 'Ghost',
                 'start_date' => now()->subMonths(2)->toDateString(),
-                'acquisition_cost_paisa' => 80_000_00,
+                'acquisition_cost_paisa' => Money::toMinor('8000'),
                 'status' => ProjectStatus::Live,
                 'notes' => 'Secondary demo project in setup→live transition.',
             ],
@@ -129,7 +130,7 @@ class DemoPortfolioSeeder extends Seeder
                 'metadata' => [
                     'provider' => 'Hostinger',
                     'ip' => '203.0.113.10',
-                    'renewal_cost_paisa' => 1500000,
+                    'renewal_cost_paisa' => Money::toMinor('150'),
                 ],
             ],
         );

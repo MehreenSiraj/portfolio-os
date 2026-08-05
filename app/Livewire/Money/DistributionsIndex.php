@@ -7,6 +7,8 @@ use App\Models\DistributionRun;
 use App\Policies\FinancePolicy;
 use App\Services\CsvExportService;
 use App\Services\DistributionService;
+use App\Support\Currency;
+use App\Support\DisplayTimezone;
 use App\Support\Money;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
@@ -31,7 +33,7 @@ class DistributionsIndex extends Component
     public function mount(): void
     {
         abort_unless(FinancePolicy::viewDistributions(Auth::user()), 403);
-        $this->period_month = now('Asia/Karachi')->subMonth()->format('Y-m');
+        $this->period_month = DisplayTimezone::now()->subMonth()->format('Y-m');
     }
 
     public function createDraft(DistributionService $distributions): void
@@ -64,13 +66,15 @@ class DistributionsIndex extends Component
                 $r->id,
                 $r->period_month->format('Y-m'),
                 $r->status->value,
-                Money::paisaToMajor((int) $r->total_net_profit_paisa),
-                Money::paisaToMajor((int) $r->total_credited_paisa),
-                Money::paisaToMajor((int) $r->total_holdback_paisa),
+                Money::fromMinor((int) $r->total_net_profit_paisa),
+                Money::fromMinor((int) $r->total_credited_paisa),
+                Money::fromMinor((int) $r->total_holdback_paisa),
             ]);
 
+        $code = strtolower(Currency::code());
+
         return $csv->download('distributions.csv', [
-            'id', 'period', 'status', 'net_profit_pkr', 'credited_pkr', 'holdback_pkr',
+            'id', 'period', 'status', 'net_profit_'.$code, 'credited_'.$code, 'holdback_'.$code,
         ], $rows);
     }
 

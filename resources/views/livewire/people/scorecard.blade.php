@@ -117,7 +117,7 @@
                     </x-table.row>
                     <x-table.row>
                         <x-table.cell muted>Approved cost</x-table.cell>
-                        <x-table.cell numeric><x-money :paisa="$card['articles']['cost_paisa']" currency="PKR" /></x-table.cell>
+                        <x-table.cell numeric><x-money :paisa="$card['articles']['cost_paisa']" :currency="\App\Support\Currency::code()" /></x-table.cell>
                     </x-table.row>
                     <x-table.row>
                         <x-table.cell muted>Links approved</x-table.cell>
@@ -125,7 +125,7 @@
                     </x-table.row>
                     <x-table.row>
                         <x-table.cell muted>Link cost</x-table.cell>
-                        <x-table.cell numeric><x-money :paisa="$card['links']['cost_paisa']" currency="PKR" /></x-table.cell>
+                        <x-table.cell numeric><x-money :paisa="$card['links']['cost_paisa']" :currency="\App\Support\Currency::code()" /></x-table.cell>
                     </x-table.row>
                 </x-table>
             </x-card>

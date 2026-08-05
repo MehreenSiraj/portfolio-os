@@ -6,6 +6,7 @@ use App\Models\DistributionRun;
 use App\Policies\FinancePolicy;
 use App\Services\CsvExportService;
 use App\Services\DistributionService;
+use App\Support\Currency;
 use App\Support\Money;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
@@ -49,14 +50,17 @@ class DistributionShow extends Component
             $l->project?->domain,
             $l->user?->name,
             $l->share_bps / 100,
-            Money::paisaToMajor((int) $l->net_profit_paisa),
-            Money::paisaToMajor((int) $l->gross_share_paisa),
-            Money::paisaToMajor((int) $l->holdback_paisa),
-            Money::paisaToMajor((int) $l->credited_paisa),
+            Money::fromMinor((int) $l->net_profit_paisa),
+            Money::fromMinor((int) $l->gross_share_paisa),
+            Money::fromMinor((int) $l->holdback_paisa),
+            Money::fromMinor((int) $l->credited_paisa),
         ]);
 
+        $code = strtolower(Currency::code());
+
         return $csv->download('distribution-'.$this->run->id.'-lines.csv', [
-            'id', 'project', 'partner', 'share_pct', 'net_profit_pkr', 'gross_share_pkr', 'holdback_pkr', 'credited_pkr',
+            'id', 'project', 'partner', 'share_pct',
+            'net_profit_'.$code, 'gross_share_'.$code, 'holdback_'.$code, 'credited_'.$code,
         ], $rows);
     }
 

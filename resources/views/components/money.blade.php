@@ -8,7 +8,7 @@
 
 @php
     $amount = (int) $paisa;
-    $formatted = number_format(abs($amount) / 100, 2);
+    $formatted = \App\Support\Money::formatted(abs($amount), '');
     $prefix = $amount < 0 ? '−' : ($signed && $amount > 0 ? '+' : '');
 
     $colour = ! $tone ? 'text-ink-soft' : match (true) {

@@ -19,7 +19,7 @@
     </x-page-header>
 
     <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <x-stat label="Revenue" tone="accent" icon="revenue" hint="PKR, frozen at each row's FX rate">
+        <x-stat label="Revenue" tone="accent" icon="revenue" :hint="\App\Support\Currency::code().', frozen at each row\'s FX rate'">
             <x-money :paisa="$totals['revenue_paisa']" size="lg" :tone="false" />
         </x-stat>
 

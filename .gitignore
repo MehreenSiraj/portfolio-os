@@ -1,8 +1,15 @@
 *.log
 .DS_Store
+
+# Ignore every dotenv variant, then allow the committed templates back in.
 .env
-.env.backup
-.env.production
+.env.*
+!.env.example
+!.env.production.example
+
+*.sqlite
+*.sqlite-journal
+*.sqlite3
 .phpactor.json
 .phpunit.result.cache
 /.codex

@@ -8,11 +8,11 @@ use App\Models\Revenue;
 use App\Models\RevenueImportBatch;
 use App\Models\User;
 use App\Support\AppSettings;
+use App\Support\Currency;
 use App\Support\Money;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
-use RuntimeException;
 
 class RevenueService
 {
@@ -22,15 +22,15 @@ class RevenueService
     ) {}
 
     /**
-     * Default FX (PKR per 1 USD) from settings as e6 scale.
+     * Default source→base FX rate from settings as e6 scale.
      */
     public function defaultFxRateE6(): int
     {
         $fx = AppSettings::get('fx_defaults', []);
-        $rate = $fx['USD_to_PKR'] ?? null;
+        $rate = $fx[Currency::fxKey()] ?? null;
 
         if ($rate === null || $rate === '') {
-            return Money::fxRateToE6('278');
+            return Money::fxRateToE6(Currency::defaultFxRate());
         }
 
         return Money::fxRateToE6((string) $rate);
@@ -180,14 +180,14 @@ class RevenueService
                 try {
                     $period = $this->parsePeriodMonth($monthRaw);
                     $fxE6 = $fxRaw !== null ? Money::fxRateToE6($fxRaw) : $defaultFxE6;
-                    $cents = Money::usdToCents($amountUsd);
+                    $cents = Money::sourceToMinor($amountUsd);
                     $this->create([
                         'project_id' => $project->id,
                         'period_month' => $period,
                         'source' => RevenueSource::Adsense->value,
                         'amount_usd_cents' => $cents,
                         'fx_rate_e6' => $fxE6,
-                        'currency_input' => 'USD',
+                        'currency_input' => Currency::sourceCode(),
                         'import_batch_id' => $batch->id,
                         'notes' => 'Imported from '.$filename,
                     ], $actor);
@@ -241,10 +241,10 @@ class RevenueService
             throw new InvalidArgumentException('Invalid revenue source.');
         }
 
-        $currency = strtoupper((string) ($data['currency_input'] ?? 'USD'));
+        $currency = strtoupper((string) ($data['currency_input'] ?? Currency::sourceCode()));
 
         if (array_key_exists('amount_usd', $data) && $data['amount_usd'] !== null && $data['amount_usd'] !== '') {
-            $cents = Money::usdToCents($data['amount_usd']);
+            $cents = Money::sourceToMinor($data['amount_usd']);
         } elseif (isset($data['amount_usd_cents'])) {
             $cents = (int) $data['amount_usd_cents'];
         } elseif ($existing) {
@@ -263,11 +263,13 @@ class RevenueService
             $fxE6 = $this->defaultFxRateE6();
         }
 
-        // Always freeze PKR from stored USD+FX when currency is USD (never use live rate on read).
-        // Pure PKR entry: amount_pkr provided, zero USD.
-        if ($currency === 'PKR' && (array_key_exists('amount_pkr', $data) || ($existing && $existing->currency_input === 'PKR'))) {
+        // Always freeze the base amount from stored source+FX (never use a live rate on read).
+        // Base-currency entry: amount_pkr provided, zero source amount.
+        $baseCode = Currency::code();
+
+        if ($currency === $baseCode && (array_key_exists('amount_pkr', $data) || ($existing && $existing->currency_input === $baseCode))) {
             if (array_key_exists('amount_pkr', $data) && $data['amount_pkr'] !== null && $data['amount_pkr'] !== '') {
-                $pkr = Money::pkrToPaisa($data['amount_pkr']);
+                $pkr = Money::toMinor($data['amount_pkr']);
             } elseif ($existing) {
                 $pkr = (int) $existing->amount_pkr_paisa;
             } else {
@@ -276,10 +278,10 @@ class RevenueService
             $cents = 0;
             $fxE6 = 0;
         } else {
-            $pkr = Money::usdCentsToPkrPaisa($cents, $fxE6);
-            // Optional explicit amount_pkr only allowed if matches formula (or first write override when cents=0)
+            $pkr = Money::sourceMinorToBaseMinor($cents, $fxE6);
+            // Optional explicit base amount only allowed as a first-write override when the source amount is zero.
             if (isset($data['amount_pkr']) && $data['amount_pkr'] !== null && $data['amount_pkr'] !== '' && $cents === 0) {
-                $pkr = Money::pkrToPaisa($data['amount_pkr']);
+                $pkr = Money::toMinor($data['amount_pkr']);
             }
         }
 

@@ -1,7 +1,7 @@
 <div class="space-y-6">
     <x-page-header
         title="Revenue"
-        subtitle="Per site, per month. USD is frozen at the row's FX rate, so stored PKR never re-converts."
+        :subtitle="'Per site, per month. '.\App\Support\Currency::sourceCode().' is frozen at the row\'s FX rate, so stored '.\App\Support\Currency::code().' never re-converts.'"
         :breadcrumbs="[['label' => 'Money'], ['label' => 'Revenue']]"
     >
         <x-slot:actions>
@@ -65,19 +65,19 @@
                 </x-select>
 
                 <x-input
-                    label="Amount USD"
+                    :label="'Amount '.\App\Support\Currency::sourceCode()"
                     wire:model="amount_usd"
                     :error="$errors->first('amount_usd')"
-                    suffix="USD"
+                    :suffix="\App\Support\Currency::sourceCode()"
                     required
                 />
 
                 <x-input
-                    label="FX rate (PKR per 1 USD)"
+                    :label="'FX rate ('.\App\Support\Currency::fxLabel().')'"
                     wire:model="fx_rate"
                     :error="$errors->first('fx_rate')"
                     hint="Stored on the row; never recalculated later at a new rate."
-                    suffix="PKR"
+                    :suffix="\App\Support\Currency::code()"
                     required
                 />
 
@@ -121,7 +121,7 @@
         <x-empty-state
             icon="revenue"
             title="No revenue for this period"
-            description="Revenue is logged per site per month with the USD→PKR rate frozen on the row. Widen the month or project filter, or record the first row."
+            :description="'Revenue is logged per site per month with the '.\App\Support\Currency::sourceCode().'→'.\App\Support\Currency::code().' rate frozen on the row. Widen the month or project filter, or record the first row.'"
         >
             @if ($canManage)
                 <x-button icon="plus" wire:click="create">Add revenue</x-button>
@@ -135,9 +135,9 @@
                     ['label' => 'Month', 'width' => 'w-24'],
                     'Project',
                     'Source',
-                    ['label' => 'USD', 'align' => 'right'],
+                    ['label' => \App\Support\Currency::sourceCode(), 'align' => 'right'],
                     ['label' => 'FX', 'align' => 'right'],
-                    ['label' => 'PKR', 'align' => 'right'],
+                    ['label' => \App\Support\Currency::code(), 'align' => 'right'],
                 ], $canManage ? [['label' => 'Actions', 'align' => 'right', 'width' => 'w-24']] : [])"
             >
                 @foreach ($revenues as $row)

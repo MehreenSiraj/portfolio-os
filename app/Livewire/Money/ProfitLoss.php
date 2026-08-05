@@ -5,6 +5,8 @@ namespace App\Livewire\Money;
 use App\Policies\FinancePolicy;
 use App\Services\CsvExportService;
 use App\Services\ProfitAndLossService;
+use App\Support\Currency;
+use App\Support\DisplayTimezone;
 use App\Support\Money;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
@@ -23,7 +25,7 @@ class ProfitLoss extends Component
     {
         abort_unless(FinancePolicy::viewPnl(Auth::user()), 403);
         if ($this->month === '') {
-            $this->month = now('Asia/Karachi')->format('Y-m');
+            $this->month = DisplayTimezone::now()->format('Y-m');
         }
     }
 
@@ -33,15 +35,18 @@ class ProfitLoss extends Component
         $report = $pnl->forMonth(Auth::user(), $this->month);
         $rows = collect($report['projects'])->map(fn ($r) => [
             $r['domain'],
-            Money::paisaToMajor($r['revenue_paisa']),
-            Money::paisaToMajor($r['direct_expense_paisa']),
-            Money::paisaToMajor($r['shared_expense_paisa']),
-            Money::paisaToMajor($r['total_expense_paisa']),
-            Money::paisaToMajor($r['net_profit_paisa']),
+            Money::fromMinor($r['revenue_paisa']),
+            Money::fromMinor($r['direct_expense_paisa']),
+            Money::fromMinor($r['shared_expense_paisa']),
+            Money::fromMinor($r['total_expense_paisa']),
+            Money::fromMinor($r['net_profit_paisa']),
         ]);
 
+        $code = strtolower(Currency::code());
+
         return $csv->download('pnl-'.$this->month.'.csv', [
-            'domain', 'revenue_pkr', 'direct_expense_pkr', 'shared_expense_pkr', 'total_expense_pkr', 'net_profit_pkr',
+            'domain', 'revenue_'.$code, 'direct_expense_'.$code, 'shared_expense_'.$code,
+            'total_expense_'.$code, 'net_profit_'.$code,
         ], $rows);
     }
 

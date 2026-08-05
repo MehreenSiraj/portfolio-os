@@ -96,7 +96,7 @@
                             @endif
                         </x-table.cell>
                         <x-table.cell numeric muted nowrap>
-                            {{ $task->due_date?->timezone(\App\Support\AppSettings::get('display_timezone', 'Asia/Karachi'))->format('Y-m-d') ?? '—' }}
+                            {{ $task->due_date?->timezone(\App\Support\DisplayTimezone::name())->format('Y-m-d') ?? '—' }}
                         </x-table.cell>
                         <x-table.cell>
                             <x-badge :tone="match($task->status->value) {

@@ -14,7 +14,9 @@ use App\Models\Link;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
+use App\Services\RecurringTaskGenerator;
 use App\Services\SetupChecklistService;
+use App\Support\Money;
 use Illuminate\Database\Seeder;
 
 class DemoWorkSeeder extends Seeder
@@ -40,7 +42,7 @@ class DemoWorkSeeder extends Seeder
 
         $alpha->update([
             'monthly_link_target' => 10,
-            'monthly_link_budget_paisa' => 50_000_00, // 50,000 PKR
+            'monthly_link_budget_paisa' => Money::toMinor('2000'),
         ]);
 
         // Mixed-status ad-hoc tasks
@@ -122,22 +124,22 @@ class DemoWorkSeeder extends Seeder
                 'created_by' => $admin?->id,
             ],
         );
-        app(\App\Services\RecurringTaskGenerator::class)->generateForSource($source);
+        app(RecurringTaskGenerator::class)->generateForSource($source);
 
         $articles = [
             [
-                'title' => 'Best budgeting apps in Pakistan',
-                'target_keyword' => 'budgeting apps pakistan',
+                'title' => 'Best budgeting apps for freelancers',
+                'target_keyword' => 'best budgeting apps',
                 'status' => ArticleStatus::Brief,
                 'writer_id' => null,
-                'cost_paisa' => 8_000_00,
+                'cost_paisa' => Money::toMinor('80'),
             ],
             [
                 'title' => 'How to open a digital banking account',
-                'target_keyword' => 'digital banking pakistan',
+                'target_keyword' => 'open digital banking account',
                 'status' => ArticleStatus::Assigned,
                 'writer_id' => $staff->id,
-                'cost_paisa' => 10_000_00,
+                'cost_paisa' => Money::toMinor('100'),
                 'word_count_target' => 1800,
             ],
             [
@@ -145,7 +147,7 @@ class DemoWorkSeeder extends Seeder
                 'target_keyword' => 'salary negotiation freelancers',
                 'status' => ArticleStatus::DraftSubmitted,
                 'writer_id' => $staff->id,
-                'cost_paisa' => 12_000_00,
+                'cost_paisa' => Money::toMinor('120'),
                 'word_count_target' => 2000,
                 'word_count_actual' => 1950,
                 'submitted_at' => now()->subHours(5),
@@ -155,7 +157,7 @@ class DemoWorkSeeder extends Seeder
                 'target_keyword' => 'emergency fund',
                 'status' => ArticleStatus::RevisionRequested,
                 'writer_id' => $staff->id,
-                'cost_paisa' => 7_500_00,
+                'cost_paisa' => Money::toMinor('75'),
                 'revision_notes' => 'Add local examples and update meta description.',
             ],
         ];
@@ -183,7 +185,7 @@ class DemoWorkSeeder extends Seeder
                     'title' => 'Best laptops for creators 2026',
                     'status' => ArticleStatus::Assigned,
                     'writer_id' => $staff->id,
-                    'cost_paisa' => 15_000_00,
+                    'cost_paisa' => Money::toMinor('150'),
                     'created_by' => $admin?->id,
                 ],
             );
@@ -195,14 +197,14 @@ class DemoWorkSeeder extends Seeder
                 'target_page' => 'https://alpha-demo.test/guides/budgeting',
                 'anchor_text' => 'budgeting guide',
                 'workflow_status' => LinkWorkflowStatus::Pending,
-                'cost_paisa' => 5_000_00,
+                'cost_paisa' => Money::toMinor('50'),
             ],
             [
                 'source_url' => 'https://news.example.org/resources',
                 'target_page' => 'https://alpha-demo.test/',
                 'anchor_text' => 'alpha demo',
                 'workflow_status' => LinkWorkflowStatus::Submitted,
-                'cost_paisa' => 12_000_00,
+                'cost_paisa' => Money::toMinor('120'),
                 'dr' => 42,
                 'submitted_at' => now()->subHour(),
             ],
@@ -211,7 +213,7 @@ class DemoWorkSeeder extends Seeder
                 'target_page' => 'https://alpha-demo.test/about',
                 'anchor_text' => 'about us',
                 'workflow_status' => LinkWorkflowStatus::Rejected,
-                'cost_paisa' => 2_000_00,
+                'cost_paisa' => Money::toMinor('20'),
                 'rejection_reason' => 'Spammy directory — do not use.',
             ],
             // duplicate domain seed (for UI warn demos on create)
@@ -220,7 +222,7 @@ class DemoWorkSeeder extends Seeder
                 'target_page' => 'https://alpha-demo.test/blog',
                 'anchor_text' => 'read more',
                 'workflow_status' => LinkWorkflowStatus::Pending,
-                'cost_paisa' => 3_500_00,
+                'cost_paisa' => Money::toMinor('35'),
             ],
         ];
 

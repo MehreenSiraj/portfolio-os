@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\PayRateType;
+use App\Support\Money;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -37,6 +38,6 @@ class PayRate extends Model
 
     public function amountFormatted(): string
     {
-        return number_format($this->amount_paisa / 100, 2).' '.$this->currency;
+        return Money::formatted((int) $this->amount_paisa, $this->currency);
     }
 }

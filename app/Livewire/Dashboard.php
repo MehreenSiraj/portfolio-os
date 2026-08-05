@@ -2,8 +2,6 @@
 
 namespace App\Livewire;
 
-use App\Enums\ArticleStatus;
-use App\Enums\LinkWorkflowStatus;
 use App\Enums\ProjectStatus;
 use App\Enums\TaskStatus;
 use App\Models\Article;
@@ -65,8 +63,8 @@ class Dashboard extends Component
             ? (clone $projectsQuery)->orderByDesc('updated_at')->limit(5)->get()
             : collect();
 
-        $tz = AppSettings::get('display_timezone', 'Asia/Karachi');
-        $todayLocal = now($tz)->toDateString();
+        $tz = DisplayTimezone::name();
+        $todayLocal = DisplayTimezone::today();
         // due_date is a date column (no time); compare to local calendar date string
         $myTasksDueToday = collect();
         if ($user?->hasPermission('tasks.view')) {

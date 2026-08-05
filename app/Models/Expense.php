@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Money;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -76,7 +77,7 @@ class Expense extends Model
 
     public function amountFormatted(): string
     {
-        return number_format($this->amount_paisa / 100, 2).' PKR';
+        return Money::formatted((int) $this->amount_paisa, $this->currency);
     }
 
     /**

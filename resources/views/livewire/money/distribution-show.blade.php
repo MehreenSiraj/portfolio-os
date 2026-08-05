@@ -23,7 +23,7 @@
 
             @if ($run->approved_at)
                 <span class="font-mono text-xs text-muted">
-                    Approved {{ $run->approved_at->timezone('Asia/Karachi')->format('Y-m-d H:i') }}
+                    Approved {{ $run->approved_at->timezone(\App\Support\DisplayTimezone::name())->format('Y-m-d H:i') }}
                 </span>
             @endif
 

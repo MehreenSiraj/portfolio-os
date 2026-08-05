@@ -1,5 +1,5 @@
 @php
-    $tz = \App\Support\AppSettings::get('display_timezone', 'Asia/Karachi');
+    $tz = \App\Support\DisplayTimezone::name();
 @endphp
 
 <div class="space-y-5">
@@ -43,12 +43,12 @@
     </x-page-header>
 
     <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <x-stat label="Revenue this month" :value="number_format($project->monthRevenuePaisa() / 100, 0)" hint="PKR" icon="revenue" tone="accent" />
-        <x-stat label="Cost this month" :value="number_format($project->monthCostPaisa() / 100, 0)" hint="PKR" icon="expenses" />
+        <x-stat label="Revenue this month" :value="\App\Support\Money::rounded($project->monthRevenuePaisa())" :hint="\App\Support\Currency::code()" icon="revenue" tone="accent" />
+        <x-stat label="Cost this month" :value="\App\Support\Money::rounded($project->monthCostPaisa())" :hint="\App\Support\Currency::code()" icon="expenses" />
         <x-stat
             label="Profit this month"
-            :value="number_format($project->monthProfitPaisa() / 100, 0)"
-            hint="PKR"
+            :value="\App\Support\Money::rounded($project->monthProfitPaisa())"
+            :hint="\App\Support\Currency::code()"
             icon="pnl"
             :tone="$project->monthProfitPaisa() >= 0 ? 'success' : 'danger'"
         />
@@ -71,7 +71,7 @@
                 <x-input label="Niche" wire:model="niche" :error="$errors->first('niche')" />
                 <x-input label="CMS" wire:model="cms" :error="$errors->first('cms')" />
                 <x-input label="Start date" type="date" wire:model="start_date" :error="$errors->first('start_date')" />
-                <x-input label="Acquisition cost" type="number" step="0.01" min="0" suffix="PKR" wire:model="acquisition_cost" :error="$errors->first('acquisition_cost')" />
+                <x-input label="Acquisition cost" type="number" step="0.01" min="0" :suffix="\App\Support\Currency::code()" wire:model="acquisition_cost" :error="$errors->first('acquisition_cost')" />
                 <x-select label="Status" wire:model="status" :error="$errors->first('status')">
                     @foreach ($statusOptions as $value => $label)
                         <option value="{{ $value }}">{{ $label }}</option>
@@ -94,7 +94,7 @@
                 </div>
                 <div>
                     <dt class="font-mono text-eyebrow text-faint uppercase">Acquisition cost</dt>
-                    <dd class="mt-1"><x-money :paisa="$project->acquisition_cost_paisa" currency="PKR" /></dd>
+                    <dd class="mt-1"><x-money :paisa="$project->acquisition_cost_paisa" :currency="\App\Support\Currency::code()" /></dd>
                 </div>
                 <div>
                     <dt class="font-mono text-eyebrow text-faint uppercase">CMS</dt>
