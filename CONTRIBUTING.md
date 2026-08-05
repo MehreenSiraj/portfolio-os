@@ -7,7 +7,7 @@ By participating you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
 ## Local setup
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/portfolio-os.git
+git clone https://github.com/tnandla/portfolio-os.git
 cd portfolio-os
 
 composer install
@@ -114,4 +114,4 @@ Commit messages: a short imperative subject line (`Add CSV column mapping to rev
 
 ## Reporting bugs and requesting features
 
-Use the [issue templates](https://github.com/YOUR_USERNAME/portfolio-os/issues/new/choose). For anything security-related, do **not** open a public issue — follow [SECURITY.md](SECURITY.md).
+Use the [issue templates](https://github.com/tnandla/portfolio-os/issues/new/choose). For anything security-related, do **not** open a public issue — follow [SECURITY.md](SECURITY.md).

@@ -100,7 +100,7 @@ No React, no Vue, no Inertia, no SPA build step on the server.
 ## Quickstart
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/portfolio-os.git
+git clone https://github.com/tnandla/portfolio-os.git
 cd portfolio-os
 
 composer install

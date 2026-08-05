@@ -121,5 +121,5 @@ the next began.
 - Credentials, passwords, keys and bank details are stripped before any prompt is built.
 - Monthly spend cap, per-request token and cost logging, and response caching.
 
-[Unreleased]: https://github.com/YOUR_USERNAME/portfolio-os/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/YOUR_USERNAME/portfolio-os/releases/tag/v1.0.0
+[Unreleased]: https://github.com/tnandla/portfolio-os/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/tnandla/portfolio-os/releases/tag/v1.0.0
