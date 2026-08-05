@@ -150,7 +150,7 @@ class Queue extends Component
         }
 
         $this->refreshQueue();
-        session()->flash('status', 'Approved. Next item loaded.');
+        $this->dispatch('toast', message: 'Approved. Next item loaded.', tone: 'success');
     }
 
     public function openReject(): void
@@ -189,7 +189,7 @@ class Queue extends Component
         }
 
         $this->refreshQueue();
-        session()->flash('status', 'Rejected. Next item loaded.');
+        $this->dispatch('toast', message: 'Rejected. Next item loaded.', tone: 'success');
     }
 
     protected function approveTask(TaskWorkflowService $workflow, Task $task): void

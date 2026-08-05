@@ -71,6 +71,11 @@ class Index extends Component
         if ($this->projectFilter === '' && session()->has('articles.last_project_id')) {
             $this->projectFilter = (string) session('articles.last_project_id');
         }
+
+        // Quick-create deep link (?new=1) opens the form straight away
+        if (request()->boolean('new') && Auth::user()?->hasPermission('articles.create')) {
+            $this->create();
+        }
     }
 
     public function updatingSearch(): void
@@ -168,7 +173,7 @@ class Index extends Component
         session(['articles.last_project_id' => $validated['project_id']]);
         $this->showForm = false;
         $this->resetForm();
-        session()->flash('status', 'Article saved.');
+        $this->dispatch('toast', message: 'Article saved.', tone: 'success');
     }
 
     public function submitDraft(int $id, ArticleWorkflowService $workflow): void
@@ -178,9 +183,9 @@ class Index extends Component
 
         try {
             $workflow->submitDraft($article);
-            session()->flash('status', 'Draft submitted for approval.');
+            $this->dispatch('toast', message: 'Draft submitted for approval.', tone: 'success');
         } catch (ValidationException $e) {
-            session()->flash('error', collect($e->errors())->flatten()->first());
+            $this->dispatch('toast', message: collect($e->errors())->flatten()->first(), tone: 'danger');
         }
     }
 
@@ -191,9 +196,9 @@ class Index extends Component
 
         try {
             $workflow->approve($article, Auth::user());
-            session()->flash('status', 'Article approved. Writer cost posted as expense.');
+            $this->dispatch('toast', message: 'Article approved. Writer cost posted as expense.', tone: 'success');
         } catch (ValidationException $e) {
-            session()->flash('error', collect($e->errors())->flatten()->first());
+            $this->dispatch('toast', message: collect($e->errors())->flatten()->first(), tone: 'danger');
         }
     }
 
@@ -215,7 +220,7 @@ class Index extends Component
             $workflow->requestRevision($article, $this->revision_notes);
             $this->showRevision = false;
             $this->editingId = null;
-            session()->flash('status', 'Revision requested.');
+            $this->dispatch('toast', message: 'Revision requested.', tone: 'success');
         } catch (ValidationException $e) {
             foreach ($e->errors() as $key => $messages) {
                 foreach ($messages as $message) {

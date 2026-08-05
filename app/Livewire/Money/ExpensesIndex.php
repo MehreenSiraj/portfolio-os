@@ -85,6 +85,10 @@ class ExpensesIndex extends Component
             $this->monthFilter = now('Asia/Karachi')->format('Y-m');
         }
         $this->expense_date = now('Asia/Karachi')->toDateString();
+
+        if (request()->boolean('new') && FinancePolicy::manageExpenses(Auth::user())) {
+            $this->create();
+        }
     }
 
     public function create(): void
@@ -139,10 +143,10 @@ class ExpensesIndex extends Component
 
         if ($this->editingId) {
             $expenses->updateManual(Expense::query()->findOrFail($this->editingId), $data, Auth::user(), $this->receipt);
-            session()->flash('status', 'Expense updated.');
+            $this->dispatch('toast', message: 'Expense updated.', tone: 'success');
         } else {
             $expenses->createManual($data, Auth::user(), $this->receipt);
-            session()->flash('status', 'Expense recorded.');
+            $this->dispatch('toast', message: 'Expense recorded.', tone: 'success');
         }
 
         $this->showForm = false;
@@ -154,7 +158,7 @@ class ExpensesIndex extends Component
     {
         abort_unless(FinancePolicy::manageExpenses(Auth::user()), 403);
         $expenses->softDelete(Expense::query()->findOrFail($id), Auth::user());
-        session()->flash('status', 'Expense soft-deleted.');
+        $this->dispatch('toast', message: 'Expense soft-deleted.', tone: 'success');
     }
 
     public function bulkMarkPaid(ExpenseService $expenses): void
@@ -163,7 +167,7 @@ class ExpensesIndex extends Component
         $ids = collect($this->selected)->filter()->keys()->map(fn ($k) => (int) $k)->all();
         $count = $expenses->bulkMarkPaid($ids, Auth::user(), true);
         $this->selected = [];
-        session()->flash('status', "Marked {$count} expense(s) paid.");
+        $this->dispatch('toast', message: "Marked {$count} expense(s) paid.", tone: 'success');
     }
 
     public function saveRecurring(ExpenseService $expenses): void
@@ -197,7 +201,7 @@ class ExpensesIndex extends Component
         ]);
 
         $this->showRecurring = false;
-        session()->flash('status', 'Recurring expense template saved. Runs via expenses:generate-recurring.');
+        $this->dispatch('toast', message: 'Recurring expense template saved. Runs via expenses:generate-recurring.', tone: 'success');
     }
 
     public function exportCsv(CsvExportService $csv)

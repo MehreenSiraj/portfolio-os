@@ -74,6 +74,11 @@ class Index extends Component
         if ($this->projectFilter === '' && session()->has('tasks.last_project_id')) {
             $this->projectFilter = (string) session('tasks.last_project_id');
         }
+
+        // Quick-create deep link (?new=1) opens the form straight away
+        if (request()->boolean('new') && Auth::user()?->hasPermission('tasks.create')) {
+            $this->create();
+        }
     }
 
     public function updatingSearch(): void
@@ -182,7 +187,7 @@ class Index extends Component
         session(['tasks.last_project_id' => $validated['project_id']]);
         $this->showForm = false;
         $this->resetForm();
-        session()->flash('status', 'Task saved.');
+        $this->dispatch('toast', message: 'Task saved.', tone: 'success');
     }
 
     public function cancel(): void
@@ -209,7 +214,7 @@ class Index extends Component
         $count = $workflow->bulkAssign($ids, (int) $this->bulkAssignTo, Auth::user());
         $this->selectedIds = [];
         $this->bulkAssignTo = '';
-        session()->flash('status', "Assigned {$count} task(s).");
+        $this->dispatch('toast', message: "Assigned {$count} task(s).", tone: 'success');
     }
 
     public function applyBulkStatus(TaskWorkflowService $workflow): void
@@ -242,7 +247,12 @@ class Index extends Component
 
         $this->selectedIds = [];
         $this->bulkStatus = '';
-        session()->flash('status', "Updated {$count} task(s).");
+        $this->dispatch('toast', message: "Updated {$count} task(s).", tone: 'success');
+    }
+
+    public function clearSelection(): void
+    {
+        $this->selectedIds = [];
     }
 
     protected function resetForm(): void

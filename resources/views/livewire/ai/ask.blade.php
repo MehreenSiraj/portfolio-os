@@ -1,133 +1,255 @@
-<div class="{{ $compact ? '' : '' }}">
-    @unless($compact)
-        <div class="mb-8 max-w-3xl">
-            <p class="font-mono text-[11px] tracking-[0.16em] text-muted uppercase">Milestone 7</p>
-            <h1 class="mt-2 text-3xl font-semibold tracking-tight text-ink">AI assistant</h1>
-            <p class="mt-2 text-muted">
-                Ask plain-English questions about your scoped portfolio data. Answers map to fixed read-only reports — never generated SQL.
-            </p>
-        </div>
-    @else
-        <div class="mb-3 flex items-center justify-between gap-3">
-            <div>
-                <h2 class="text-base font-semibold">Ask your data</h2>
-                <p class="text-xs text-muted">AI-generated · scoped to your permissions</p>
-            </div>
-            <a href="{{ route('ai.ask') }}" wire:navigate class="text-sm font-medium text-accent hover:underline">Open full AI</a>
-        </div>
-    @endunless
+@php
+    $modes = [
+        'ask' => 'Ask',
+        'meta' => 'Meta title',
+        'rejections' => 'Rejection themes',
+        'brief' => 'Task brief',
+    ];
 
-    <div class="{{ $compact ? 'rounded-xl border border-line bg-surface p-5' : 'grid gap-6 lg:grid-cols-3' }}">
-        <div class="{{ $compact ? '' : 'lg:col-span-2 space-y-4' }}">
-            @unless($compact)
-                <div class="flex flex-wrap gap-2 mb-4">
-                    <button type="button" wire:click="$set('mode', 'ask')"
-                            class="rounded-lg px-3 py-1.5 text-sm font-medium {{ $mode === 'ask' ? 'bg-accent-soft text-accent' : 'border border-line text-muted' }}">
-                        Ask
-                    </button>
-                    <button type="button" wire:click="$set('mode', 'meta')"
-                            class="rounded-lg px-3 py-1.5 text-sm font-medium {{ $mode === 'meta' ? 'bg-accent-soft text-accent' : 'border border-line text-muted' }}">
-                        Meta title
-                    </button>
-                    <button type="button" wire:click="$set('mode', 'rejections')"
-                            class="rounded-lg px-3 py-1.5 text-sm font-medium {{ $mode === 'rejections' ? 'bg-accent-soft text-accent' : 'border border-line text-muted' }}">
-                        Rejection themes
-                    </button>
-                    <button type="button" wire:click="$set('mode', 'brief')"
-                            class="rounded-lg px-3 py-1.5 text-sm font-medium {{ $mode === 'brief' ? 'bg-accent-soft text-accent' : 'border border-line text-muted' }}">
-                        Task brief
-                    </button>
+    $figureValue = function ($value) {
+        if (is_bool($value)) {
+            return $value ? 'yes' : 'no';
+        }
+
+        if ($value === null) {
+            return '—';
+        }
+
+        return is_scalar($value)
+            ? (string) $value
+            : json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    };
+
+    // Nested figure maps read far better as one row per number than as a JSON blob.
+    $flattenFigures = function (array $data, string $prefix = '') use (&$flattenFigures) {
+        $rows = [];
+
+        foreach ($data as $key => $value) {
+            $label = trim($prefix.' · '.str_replace('_', ' ', (string) $key), ' ·');
+            $isMap = is_array($value) && $value !== [] && array_keys($value) !== range(0, count($value) - 1);
+
+            if ($isMap) {
+                $rows = array_merge($rows, $flattenFigures($value, $label));
+            } else {
+                $rows[] = ['label' => $label, 'value' => $value];
+            }
+        }
+
+        return $rows;
+    };
+@endphp
+
+<div class="{{ $compact ? '' : 'space-y-6' }}">
+    @if ($compact)
+        <x-card title="Ask your data" subtitle="AI-generated · scoped to your permissions" icon="ai">
+            <x-slot:actions>
+                <x-button size="sm" variant="ghost" iconRight="arrow-right" href="{{ route('ai.ask') }}" wire:navigate>Open full console</x-button>
+            </x-slot:actions>
+
+            <form wire:submit="ask" class="space-y-3">
+                <x-textarea
+                    label="Question"
+                    wire:model="question"
+                    rows="2"
+                    placeholder="e.g. Which sites dropped revenue this month vs prior?"
+                    :error="$errors->first('question')"
+                />
+
+                <div class="flex justify-end">
+                    <x-button type="submit" size="sm" target="ask" icon="ai">Ask</x-button>
                 </div>
-            @endunless
-
-            @if ($mode === 'ask' || $compact)
-                <form wire:submit="ask" class="space-y-3">
-                    <label class="block text-sm font-medium">Question</label>
-                    <textarea
-                        wire:model="question"
-                        rows="{{ $compact ? 2 : 3 }}"
-                        placeholder="e.g. Which sites dropped revenue this month vs prior?"
-                        class="block w-full rounded-lg border border-line bg-canvas px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
-                    ></textarea>
-                    @error('question') <p class="text-xs text-danger">{{ $message }}</p> @enderror
-                    <x-button type="submit" wire:loading.attr="disabled">
-                        <span wire:loading.remove wire:target="ask">Ask</span>
-                        <span wire:loading wire:target="ask">Thinking…</span>
-                    </x-button>
-                </form>
-            @elseif ($mode === 'meta' || $mode === 'brief')
-                <form wire:submit="runHelper" class="space-y-3">
-                    <x-input label="{{ $mode === 'meta' ? 'Title / topic' : 'Task title' }}" wire:model="helperTitle" error="{{ $errors->first('helperTitle') }}" />
-                    <div class="space-y-1.5">
-                        <label class="block text-sm font-medium">Notes (optional)</label>
-                        <textarea wire:model="helperNotes" rows="3"
-                                  class="block w-full rounded-lg border border-line bg-canvas px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"></textarea>
-                    </div>
-                    <x-button type="submit" wire:loading.attr="disabled">Generate</x-button>
-                </form>
-            @else
-                <form wire:submit="runHelper" class="space-y-3">
-                    <p class="text-sm text-muted">Summarise recent rejection / revision reasons in your scope.</p>
-                    <x-button type="submit" wire:loading.attr="disabled">Summarise</x-button>
-                </form>
-            @endif
+            </form>
 
             @if ($error)
-                <div class="mt-4 rounded-lg border border-danger/20 bg-danger-soft px-4 py-3 text-sm text-danger">{{ $error }}</div>
+                <p class="mt-3 flex items-start gap-1.5 rounded-lg border border-danger-line bg-danger-soft px-3 py-2 text-xs text-danger">
+                    <x-icon name="alert" class="mt-px size-3.5 shrink-0" />
+                    {{ $error }}
+                </p>
             @endif
 
             @if ($answer !== '')
-                <div class="mt-5 space-y-3">
+                <div class="mt-4 space-y-3">
                     <div class="flex flex-wrap items-center gap-2">
-                        <x-badge tone="accent">AI-generated</x-badge>
+                        <x-badge size="sm" tone="accent">AI-generated</x-badge>
                         @if ($cached)
-                            <x-badge tone="warn">Cached</x-badge>
+                            <x-badge size="sm" tone="warn">Cached</x-badge>
                         @endif
                         @if ($reportTitle)
-                            <span class="text-xs text-muted">Report: {{ $reportTitle }}</span>
+                            <span class="font-mono text-[10px] text-muted uppercase">{{ $reportTitle }}</span>
                         @endif
                     </div>
-                    <div class="rounded-xl border border-line bg-canvas px-4 py-3 text-sm whitespace-pre-wrap text-ink">{{ $answer }}</div>
+
+                    <p class="rounded-lg border border-line bg-subtle/60 px-3 py-2.5 text-sm whitespace-pre-wrap text-ink-soft">{{ $answer }}</p>
 
                     @if ($sourceFigures !== [])
-                        <details class="rounded-xl border border-line bg-surface px-4 py-3 text-sm">
-                            <summary class="cursor-pointer font-medium">Source figures</summary>
-                            <pre class="mt-3 overflow-x-auto font-mono text-xs text-muted">{{ json_encode($sourceFigures, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
+                        <details class="rounded-lg border border-line px-3 py-2">
+                            <summary class="cursor-pointer text-xs font-medium text-muted">Source figures</summary>
+                            <dl class="mt-2 space-y-1">
+                                @foreach ($flattenFigures($sourceFigures) as $figure)
+                                    <div class="flex items-baseline justify-between gap-3 text-[11px]">
+                                        <dt class="font-mono text-muted">{{ $figure['label'] }}</dt>
+                                        <dd class="min-w-0 truncate font-mono text-ink-soft tabular-nums">{{ $figureValue($figure['value']) }}</dd>
+                                    </div>
+                                @endforeach
+                            </dl>
                         </details>
                     @endif
                 </div>
             @endif
-        </div>
+        </x-card>
+    @else
+        <x-page-header
+            title="Ask your data"
+            subtitle="Plain-English questions about your scoped portfolio. Every answer maps to a fixed read-only report — never generated SQL."
+            :breadcrumbs="[['label' => 'Workspace']]"
+        >
+            <x-slot:meta>
+                <x-badge tone="accent" size="sm" dot>Read-only reports</x-badge>
+                <x-badge tone="neutral" size="sm">{{ count($supported) }} supported</x-badge>
+            </x-slot:meta>
+            <x-slot:actions>
+                @if (auth()->user()?->isAdmin() || auth()->user()?->hasPermission('settings.view'))
+                    <x-button variant="secondary" icon="inbox" href="{{ route('ai.drafts') }}" wire:navigate>Draft notes</x-button>
+                @endif
+            </x-slot:actions>
+        </x-page-header>
 
-        @unless($compact)
-            <aside class="space-y-4">
-                <div class="rounded-xl border border-line bg-surface p-5">
-                    <h2 class="text-sm font-semibold">Spend this month</h2>
-                    <p class="mt-2 font-mono text-2xl font-semibold tabular-nums">
-                        ${{ number_format($spentCents / 100, 2) }}
+        <div class="grid gap-6 lg:grid-cols-3">
+            <div class="space-y-4 lg:col-span-2">
+                <x-card flush class="overflow-hidden">
+                    <div class="flex flex-wrap items-center gap-1 border-b border-line bg-subtle/50 px-3 py-2">
+                        @foreach ($modes as $key => $label)
+                            <x-button
+                                size="sm"
+                                target=""
+                                :variant="$mode === $key ? 'subtle' : 'ghost'"
+                                wire:click="$set('mode', '{{ $key }}')"
+                                aria-pressed="{{ $mode === $key ? 'true' : 'false' }}"
+                            >{{ $label }}</x-button>
+                        @endforeach
+                    </div>
+
+                    <div class="p-4 sm:p-6">
+                        @if ($mode === 'ask')
+                            <form wire:submit="ask" class="space-y-3">
+                                <x-textarea
+                                    label="Question"
+                                    wire:model="question"
+                                    rows="3"
+                                    placeholder="e.g. Which sites dropped revenue this month vs prior?"
+                                    :error="$errors->first('question')"
+                                    hint="Questions are matched to a whitelisted report before anything is sent."
+                                />
+
+                                <div class="flex justify-end">
+                                    <x-button type="submit" target="ask" icon="ai">Ask</x-button>
+                                </div>
+                            </form>
+                        @elseif ($mode === 'meta' || $mode === 'brief')
+                            <form wire:submit="runHelper" class="space-y-3">
+                                <x-input
+                                    :label="$mode === 'meta' ? 'Title / topic' : 'Task title'"
+                                    wire:model="helperTitle"
+                                    :error="$errors->first('helperTitle')"
+                                />
+
+                                <x-textarea
+                                    label="Notes (optional)"
+                                    wire:model="helperNotes"
+                                    rows="3"
+                                    :error="$errors->first('helperNotes')"
+                                />
+
+                                <div class="flex justify-end">
+                                    <x-button type="submit" target="runHelper" icon="ai">Generate</x-button>
+                                </div>
+                            </form>
+                        @else
+                            <form wire:submit="runHelper" class="space-y-3">
+                                <p class="text-sm text-muted">Summarise recent rejection / revision reasons in your scope.</p>
+
+                                <div class="flex justify-end">
+                                    <x-button type="submit" target="runHelper" icon="ai">Summarise</x-button>
+                                </div>
+                            </form>
+                        @endif
+                    </div>
+                </x-card>
+
+                @if ($error)
+                    <p class="flex items-start gap-2 rounded-xl border border-danger-line bg-danger-soft px-4 py-3 text-sm text-danger">
+                        <x-icon name="alert" class="mt-0.5 size-4 shrink-0" />
+                        {{ $error }}
                     </p>
-                    <p class="mt-1 text-xs text-muted">
-                        of ${{ number_format($budgetCents / 100, 2) }} cap · ${{ number_format($remainingCents / 100, 2) }} left
-                        (estimate)
-                    </p>
+                @endif
+
+                <div wire:loading.delay.long.flex wire:target="ask,runHelper" class="hidden">
+                    <x-card class="w-full">
+                        <x-skeleton :lines="4" />
+                    </x-card>
                 </div>
-                <div class="rounded-xl border border-line bg-surface p-5">
-                    <h2 class="text-sm font-semibold">Supported reports</h2>
-                    <ul class="mt-3 space-y-2 text-sm text-muted">
+
+                @if ($answer !== '')
+                    <x-card title="Answer" :subtitle="$reportTitle ? 'Report: '.$reportTitle : null" icon="ai">
+                        <x-slot:actions>
+                            <x-badge tone="accent">AI-generated</x-badge>
+                            @if ($cached)
+                                <x-badge tone="warn">Cached</x-badge>
+                            @endif
+                        </x-slot:actions>
+
+                        <p class="text-sm whitespace-pre-wrap text-ink-soft">{{ $answer }}</p>
+                    </x-card>
+
+                    @if ($sourceFigures !== [])
+                        <x-card title="Source figures" subtitle="The exact scoped numbers the answer was written from." icon="pnl" flush class="overflow-hidden">
+                            <x-table flush :headers="['Figure', ['label' => 'Value', 'align' => 'right']]">
+                                @foreach ($flattenFigures($sourceFigures) as $index => $figure)
+                                    @php $scalar = is_scalar($figure['value']) || $figure['value'] === null; @endphp
+                                    <x-table.row wire:key="figure-{{ $index }}">
+                                        <x-table.cell mono muted nowrap>{{ $figure['label'] }}</x-table.cell>
+                                        <x-table.cell mono :align="$scalar ? 'right' : 'left'">
+                                            @if ($scalar)
+                                                <span class="tabular-nums">{{ $figureValue($figure['value']) }}</span>
+                                            @else
+                                                <pre class="max-w-full overflow-x-auto text-[10px] text-muted">{{ $figureValue($figure['value']) }}</pre>
+                                            @endif
+                                        </x-table.cell>
+                                    </x-table.row>
+                                @endforeach
+                            </x-table>
+                        </x-card>
+                    @endif
+                @endif
+            </div>
+
+            <aside class="space-y-4">
+                <x-card title="Spend this month" subtitle="Estimated from token use." icon="expenses">
+                    <p class="font-mono text-figure font-medium text-ink tabular-nums">${{ number_format($spentCents / 100, 2) }}</p>
+
+                    <x-progress
+                        class="mt-3"
+                        :value="$spentCents"
+                        :max="max(1, $budgetCents)"
+                        label="Monthly cap"
+                        caption="${{ number_format($remainingCents / 100, 2) }} left"
+                        :tone="$remainingCents <= 0 ? 'danger' : ($spentCents > ($budgetCents * 0.8) ? 'warn' : 'accent')"
+                    />
+
+                    <p class="mt-2 text-xs text-muted">Cap ${{ number_format($budgetCents / 100, 2) }} · set in Settings.</p>
+                </x-card>
+
+                <x-card title="Supported reports" subtitle="Anything outside this list is refused." icon="pnl">
+                    <ul class="space-y-2.5">
                         @foreach ($supported as $key => $label)
                             <li class="flex gap-2">
-                                <span class="font-mono text-[10px] text-accent uppercase shrink-0 mt-0.5">{{ str_replace('_', ' ', $key) }}</span>
-                                <span>{{ $label }}</span>
+                                <span class="mt-0.5 shrink-0 font-mono text-[10px] text-accent uppercase">{{ str_replace('_', ' ', $key) }}</span>
+                                <span class="text-xs text-muted">{{ $label }}</span>
                             </li>
                         @endforeach
                     </ul>
-                </div>
-                @if(auth()->user()?->isAdmin() || auth()->user()?->hasPermission('settings.view'))
-                    <a href="{{ route('ai.drafts') }}" wire:navigate class="block rounded-xl border border-line bg-surface p-4 text-sm font-medium text-accent hover:underline">
-                        Review monthly draft notes →
-                    </a>
-                @endif
+                </x-card>
             </aside>
-        @endunless
-    </div>
+        </div>
+    @endif
 </div>

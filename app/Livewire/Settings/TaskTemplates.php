@@ -102,7 +102,7 @@ class TaskTemplates extends Component
 
         $this->showForm = false;
         $this->resetForm();
-        session()->flash('status', 'Template saved.');
+        $this->dispatch('toast', message: 'Template saved.', tone: 'success');
     }
 
     public function toggleActive(int $id): void

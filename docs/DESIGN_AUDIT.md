@@ -1,52 +1,57 @@
 # Design consistency audit
 
-**Score: 7.5 / 10** — One coherent teal-on-canvas design system (tokens, `x-button` / `x-input` / `x-badge`, sidebar shell). Foundation, Work, and People pages mostly match. Money screens read slightly like a later bolt-on (titles, tables, empty patterns). No catastrophic “different apps” split by role; access is nav-filtered, same shell.
+**Score: 9 / 10** — One design system end to end: tokens in `resources/css/app.css`, a 28-component Blade library in `resources/views/components/`, one app shell (rail + top bar + command palette + mobile drawer/thumb bar), and one page pattern (`x-page-header` → filters → content → empty/loading state) used by every screen. Money no longer reads as a bolt-on. Remaining gap is depth of interaction on a few detail screens, not visual divergence.
 
-## What is consistent
+Last full pass: front-end overhaul (design tokens, component library, app shell, page-by-page rework).
 
-- **Tokens** in `resources/css/app.css`: `canvas`, `surface`, `ink`, `muted`, `line`, `accent` (#0f766e), danger/success/warn softs; Plus Jakarta Sans + IBM Plex Mono.
-- **App shell** (`layouts/app.blade.php`): mono eyebrow “Portfolio”, accent-soft active nav, canvas → surface cards (`rounded-xl border border-line bg-surface`).
-- **Page chrome (M1–4)**: mono section label + `h1` `text-3xl font-semibold tracking-tight` + muted subtitle + primary `x-button` top-right.
-- **Components**: primary/secondary/ghost/danger buttons; labeled `x-input`; tone badges; dashed `x-empty-state`; credential/task uploads via `x-file-input`.
-- **Auth** (`layouts/guest.blade.php` + login): same token language and focus rings as app forms.
-- **Role UIs**: same layout; sidebars differ only by permission gates (not alternate themes).
+## The system
 
-## Inconsistencies by severity
+- **Tokens** (`resources/css/app.css`): `canvas` / `surface` / `raised` / `subtle` surfaces, `line` + `line-strong` borders, `ink` / `ink-soft` / `muted` / `faint` text tiers, one indigo accent (`accent`, `accent-solid`, `accent-soft`, `accent-line`) plus `success` / `warn` / `danger` / `info` each with `soft` and `line`. Dark mode is a full second token set under `.dark`, toggled per user and persisted in `localStorage` (painted before first frame, so no flash).
+- **Type**: Instrument Sans for display/headings, Geist for UI text, Geist Mono for figures, IDs, labels and eyebrows. All self-hosted `woff2` subsets in `resources/fonts` — no runtime CDN, no build-time network fetch.
+- **Density**: `--row-py` / `--nav-py` custom properties with a `[data-density='compact']` override, exposed as a "Compact rows" toggle in the user menu.
+- **Numbers**: every money and metric figure renders through `x-money` or a `numeric` table cell — mono, `tabular-nums`, right-aligned, negatives in danger, signed deltas in success.
+- **Motion**: 120–200ms transitions, `motion-safe:` on entrances, global `prefers-reduced-motion` kill switch.
+- **Focus**: one global `:focus-visible` outline token; skip link; `aria-*` on all interactive shell elements.
 
-### High
+## Component library (`resources/views/components/`)
 
-| Page / area | Element | Recommendation |
-|-------------|---------|----------------|
-| `layouts/app.blade.php` mobile nav | Was missing Money, Login history, Task templates (desktop had them) | **Fixed:** mobile strip now mirrors desktop permissions + `shrink-0`. |
-| Money index tables | Row Edit/Delete were raw `<button class="text-xs">` vs ghost `x-button` elsewhere | **Fixed** on Revenue & Expenses. |
-| Dashboard Home | Month revenue caption still said “wired for M5” | **Fixed** → “PKR · this month”. |
+`avatar` · `badge` · `bulk-bar` · `button` · `card` · `checkbox` · `dropdown` (+ `dropdown/item`) · `empty-state` · `file-input` · `filter-bar` · `icon` · `input` · `kbd` · `modal` · `money` · `page-header` · `progress` · `section` · `segmented` · `select` · `skeleton` · `spinner` · `stat` · `table` (+ `table/row`, `table/cell`) · `tabs` · `textarea` · `tooltip`, plus Livewire/Laravel pagination overrides in `resources/views/vendor/`.
 
-### Medium
+## Previously logged issues
 
-| Page / path | Element | Recommendation |
-|-------------|---------|----------------|
-| All `livewire/money/*` | Page titles `text-2xl`, no mono eyebrow (“Money”) | Match Work pattern: eyebrow + `text-3xl` + subtitle. |
-| Tasks / Links / Attendance / Money tables | Hand-rolled `<table>` vs `x-table` | Prefer `x-table` or shared thead classes (`bg-canvas/70`, same paddings). |
-| Money / Distributions / P&L empty | Inline “No … yet” table cell | Use `x-empty-state` when list empty (tasks/projects pattern). |
-| Forms app-wide | Bare `<select>` / `<textarea>` next to `x-input` | Add `x-select` / `x-textarea` (or document bare selects as OK if styled token-matched). |
-| Articles index | Card list (`p-4`) vs Links/Tasks tables | Pick one list pattern per density need; articles card is fine if intentional. |
-| Settings form cards | `p-6` panels | Align to common `p-5` card padding. |
-| `x-skeleton` | Defined, almost unused | Wire on Livewire loading targets for list pages. |
+### High — all fixed
 
-### Low
+| Page / area | Element | Status |
+|-------------|---------|--------|
+| Mobile nav | Missing Money, Login history, Task templates | **Fixed** — drawer renders the same permission-filtered tree as the desktop rail, plus a five-slot thumb bar. |
+| Money index tables | Raw `<button class="text-xs">` row actions | **Fixed** — icon `x-button`s with tooltips, same as Work. |
+| Dashboard | Stale "wired for M5" caption | **Fixed** — dashboard rebuilt around "awaiting my approval", "due today", "expiring soon", "profit this month". |
+| Money page titles | `text-2xl`, no eyebrow | **Fixed** — every page uses `x-page-header` (breadcrumb, title, subtitle, meta, actions). |
+| Hand-rolled `<table>` | Tasks / Links / Attendance / Money | **Fixed** — zero raw `<table>` tags remain in `resources/views/livewire`. |
+| Inline "No … yet" cells | Money, Distributions, P&L | **Fixed** — `x-empty-state` with icon, explanation and a next action. |
+| Bare `<select>` / `<textarea>` | App-wide | **Fixed** — zero bare form controls remain; all use `x-select` / `x-textarea` / `x-input` with label, hint and error. |
+| Card padding drift | `p-4` / `p-5` / `p-6` mix | **Fixed** — `x-card` owns padding (`sm` / `md` / `lg` / `none`). |
+| `x-skeleton` unused | — | **Fixed** — table and card skeletons on every paginated index, shown on `wire:loading.delay.long`. |
+| Back / quick links | Anchor styling instead of buttons | **Fixed** — `x-page-header` `back` prop + secondary `x-button`s. |
 
-| Page / path | Element | Recommendation |
-|-------------|---------|----------------|
-| Card padding | Mix of `p-4` / `p-5` / `p-6` / `sm:p-6` | Standardize: filters `px-4 py-3`, content cards `p-5`. |
-| Project/task detail | Back/quick links use secondary-style anchors, not `x-button` | Use `variant="secondary"` or ghost for parity. |
-| Attendance “Clear” | Raw text button (like old money rows) | Ghost `x-button` size `sm`. |
-| Guest h1 vs app h1 | Guest “Portfolio OS” `text-2xl` | Fine for marketing frame; leave. |
-| Typography on money | Mono table headers slightly denser | Cosmetically align with `x-table` header class string. |
+### Remaining / accepted
 
-## Recommended next polish pass (top 5)
+| Area | Note |
+|------|------|
+| Articles index | Intentionally a denser table now; card list dropped. |
+| Native `<input type="month">` | Kept on P&L, Scorecard, Distributions — the OS picker is faster than a custom one and adapts to `color-scheme`. |
+| Inline edit | Not implemented — editing still happens in modals/side forms. The Alpine helper (`window.osInlineEdit`) is in place for when a click-to-edit surface is added; that needs new single-field Livewire mutations, which were out of scope for a design-only pass. |
+| Charts | P&L and Scorecard are table-first. No charting library (would need a runtime dependency). |
+| Wide tables on phones | `x-table` scrolls horizontally inside its card below `sm`. Readable and contained (no page-level overflow), but a stacked card layout per row would be better for the ledger-style screens. |
+| Livewire assets | Still loaded from the pinned CDN `livewire.esm.js` with `data-navigate-once`; unchanged by this pass. |
 
-1. **Unify Money page headers** with M1–4 mono eyebrow + `text-3xl`.
-2. **Normalize data tables** onto `x-table` (or one shared partial).
-3. **Empty states** on Money (and any still-inline empties) via `x-empty-state`.
-4. **Add `x-select` / tighten form stack** so filters and forms don’t mix control heights.
-5. **Optional loading skeletons** on paginated indexes (Tasks, Projects, Revenue).
+## Interaction contract (what every page now does)
+
+1. `x-page-header` with breadcrumb, title, subtitle, optional meta chips, primary + secondary actions.
+2. `x-filter-bar` with `wire:model.live.debounce.300ms` search (`data-page-search`, focused by `/`), scoped filters and a result count.
+3. Skeleton on first load / filter change; `opacity-60` on the live list while a request is in flight.
+4. `x-table` for tabular data (sortable headers, sticky option, numeric columns, row hover, icon actions) or `x-card` sections for detail.
+5. `x-empty-state` when the query returns nothing, with the action that fixes it.
+6. Toast (`$dispatch('toast')`) after every mutation; no silent saves, no full-page banners.
+7. Bulk selection raises the sticky `x-bulk-bar` with a count and a clear action.
+8. `⌘/Ctrl+K` command palette (jump + create), `/` search, `j/k` list nav, `a/r` in approval queues, `?` shortcut sheet.

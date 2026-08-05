@@ -1,199 +1,262 @@
 <div class="space-y-6">
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-            <p class="font-mono text-[11px] tracking-[0.16em] text-muted uppercase">Work</p>
-            <h1 class="mt-2 text-3xl font-semibold tracking-tight">Links</h1>
-            <p class="mt-1 text-sm text-muted">Monthly targets, individual approval, domain duplicate warnings.</p>
-        </div>
+    <x-page-header
+        title="Links"
+        subtitle="Monthly targets, individual approval, domain duplicate warnings."
+        :breadcrumbs="[['label' => 'Work'], ['label' => 'Links']]"
+    >
         @if ($canCreate)
-            <x-button wire:click="create">Log link</x-button>
+            <x-slot:actions>
+                <x-button icon="plus" wire:click="create">Log link</x-button>
+            </x-slot:actions>
         @endif
-    </div>
+    </x-page-header>
 
-    <div class="flex flex-col gap-3 lg:flex-row">
-        <div class="max-w-sm flex-1">
-            <x-input type="search" wire:model.live.debounce.300ms="search" placeholder="Search URL, domain, anchor…" />
-        </div>
-        <select wire:model.live="projectFilter" class="rounded-lg border border-line bg-surface px-3 py-2 text-sm sm:w-48">
-            <option value="">All projects</option>
+    <x-filter-bar target="search,projectFilter,statusFilter">
+        <x-input
+            class="min-w-[12rem] flex-1 sm:max-w-xs"
+            size="sm"
+            icon="search"
+            type="search"
+            data-page-search
+            wire:model.live.debounce.300ms="search"
+            placeholder="Search URL, domain, anchor…"
+            aria-label="Search links"
+        />
+        <x-select size="sm" class="w-auto" wire:model.live="projectFilter" placeholder="All projects" aria-label="Filter by project">
             @foreach ($projects as $project)
                 <option value="{{ $project->id }}">{{ $project->domain }}</option>
             @endforeach
-        </select>
-        <select wire:model.live="statusFilter" class="rounded-lg border border-line bg-surface px-3 py-2 text-sm sm:w-40">
-            <option value="">All workflows</option>
+        </x-select>
+        <x-select size="sm" class="w-auto" wire:model.live="statusFilter" placeholder="All workflows" aria-label="Filter by workflow status">
             @foreach ($statusOptions as $value => $label)
                 <option value="{{ $value }}">{{ $label }}</option>
             @endforeach
-        </select>
-    </div>
+        </x-select>
+
+        <x-slot:trailing>{{ $links->total() }} links</x-slot:trailing>
+    </x-filter-bar>
 
     @if ($budgetProject)
-        <div class="rounded-xl border border-line bg-surface p-4">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                    <p class="text-sm font-semibold">Monthly link plan · {{ $budgetProject->domain }}</p>
-                    <p class="mt-1 text-sm text-muted">
-                        {{ $monthApprovedCount }} / {{ $budgetProject->monthly_link_target }} approved ·
-                        {{ number_format($monthSpend / 100, 0) }} / {{ number_format($budgetProject->monthly_link_budget_paisa / 100, 0) }} PKR
-                    </p>
-                </div>
-                @if ($canEditBudget)
-                    <x-button size="sm" variant="ghost" wire:click="$toggle('editingBudget')">
+        <x-card
+            title="Monthly link plan · {{ $budgetProject->domain }}"
+            subtitle="Approved links and spend inside the current calendar month."
+            icon="links"
+        >
+            @if ($canEditBudget)
+                <x-slot:actions>
+                    <x-button size="sm" variant="ghost" icon="pencil" wire:click="$toggle('editingBudget')">
                         {{ $editingBudget ? 'Close' : 'Edit target' }}
                     </x-button>
-                @endif
+                </x-slot:actions>
+            @endif
+
+            <div class="grid gap-5 sm:grid-cols-2">
+                <x-progress
+                    :value="$monthApprovedCount"
+                    :max="max(1, (int) $budgetProject->monthly_link_target)"
+                    label="Links approved"
+                    caption="{{ $monthApprovedCount }} / {{ $budgetProject->monthly_link_target }}"
+                />
+                <x-progress
+                    :value="$monthSpend"
+                    :max="max(1, (int) $budgetProject->monthly_link_budget_paisa)"
+                    label="Budget used (PKR)"
+                    caption="{{ number_format($monthSpend / 100, 0) }} / {{ number_format($budgetProject->monthly_link_budget_paisa / 100, 0) }}"
+                    :tone="$budgetProject->monthly_link_budget_paisa > 0 && $monthSpend > $budgetProject->monthly_link_budget_paisa ? 'danger' : 'accent'"
+                />
             </div>
+
             @if ($editingBudget && $canEditBudget)
-                <form wire:submit="saveBudget" class="mt-4 grid gap-3 sm:grid-cols-3">
-                    <x-input label="Monthly target (count)" type="number" min="0" wire:model="monthly_link_target" />
-                    <x-input label="Monthly budget (PKR)" type="number" step="0.01" min="0" wire:model="monthly_link_budget" />
+                <form wire:submit="saveBudget" class="mt-5 grid gap-3 border-t border-line pt-5 sm:grid-cols-3">
+                    <x-input
+                        label="Monthly target"
+                        type="number"
+                        min="0"
+                        wire:model="monthly_link_target"
+                        :error="$errors->first('monthly_link_target')"
+                        suffix="links"
+                    />
+                    <x-input
+                        label="Monthly budget"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        wire:model="monthly_link_budget"
+                        :error="$errors->first('monthly_link_budget')"
+                        suffix="PKR"
+                    />
                     <div class="flex items-end">
-                        <x-button type="submit" size="sm">Save plan</x-button>
+                        <x-button type="submit" size="sm" variant="secondary" target="saveBudget">Save plan</x-button>
                     </div>
                 </form>
             @endif
-        </div>
+        </x-card>
     @endif
 
-    @if ($showForm)
-        <div class="rounded-xl border border-line bg-surface p-5">
-            <h2 class="text-base font-semibold">{{ $editingId ? 'Edit link' : 'Log link' }}</h2>
-            <form wire:submit="save" class="mt-4 grid gap-4 sm:grid-cols-2">
-                <div class="space-y-1.5 sm:col-span-2">
-                    <label class="block text-sm font-medium">Project</label>
-                    <select wire:model="project_id" class="block w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm">
-                        <option value="">Select…</option>
-                        @foreach ($projects as $project)
-                            <option value="{{ $project->id }}">{{ $project->domain }}</option>
-                        @endforeach
-                    </select>
-                    @error('project_id') <p class="text-xs text-danger">{{ $message }}</p> @enderror
-                </div>
-                <x-input label="Source URL" wire:model="source_url" error="{{ $errors->first('source_url') }}" class="sm:col-span-2" />
-                <x-input label="Target page" wire:model="target_page" error="{{ $errors->first('target_page') }}" />
-                <x-input label="Anchor text" wire:model="anchor_text" error="{{ $errors->first('anchor_text') }}" />
-                <div class="space-y-1.5">
-                    <label class="block text-sm font-medium">Type</label>
-                    <select wire:model="type" class="block w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm">
-                        @foreach ($typeOptions as $value => $label)
-                            <option value="{{ $value }}">{{ $label }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <x-input label="Cost (PKR)" type="number" step="0.01" min="0" wire:model="cost" />
-                <x-input label="Date" type="date" wire:model="link_date" />
-                <div class="space-y-1.5">
-                    <label class="block text-sm font-medium">Live status</label>
-                    <select wire:model="live_status" class="block w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm">
-                        @foreach ($liveStatusOptions as $value => $label)
-                            <option value="{{ $value }}">{{ $label }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="sm:col-span-2">
-                    <button type="button" class="text-sm font-medium text-accent hover:underline" wire:click="$toggle('showMore')">
-                        {{ $showMore ? 'Hide' : 'More' }} details
-                    </button>
-                </div>
-                @if ($showMore)
-                    <x-input label="DR" type="number" min="0" max="100" wire:model="dr" />
-                    <x-input label="DA" type="number" min="0" max="100" wire:model="da" />
-                    <div class="space-y-1.5 sm:col-span-2">
-                        <label class="block text-sm font-medium">Assignee</label>
-                        <select wire:model="assigned_to" class="block w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm">
-                            <option value="">Unassigned</option>
-                            @foreach ($users as $user)
-                                <option value="{{ $user->id }}">{{ $user->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                @endif
-
-                <div class="flex gap-2 sm:col-span-2">
-                    <x-button type="submit">Save</x-button>
-                    <x-button type="button" variant="secondary" wire:click="cancel">Cancel</x-button>
-                </div>
-            </form>
-        </div>
-    @endif
-
-    @if ($showReject)
-        <div class="rounded-xl border border-danger/20 bg-surface p-5">
-            <h2 class="text-sm font-semibold text-danger">Reject link</h2>
-            <textarea wire:model="rejection_reason" rows="3" class="mt-3 block w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm" placeholder="Reason required…"></textarea>
-            @error('rejection_reason') <p class="mt-1 text-xs text-danger">{{ $message }}</p> @enderror
-            <div class="mt-3 flex gap-2">
-                <x-button variant="danger" wire:click="reject">Confirm</x-button>
-                <x-button variant="secondary" wire:click="cancel">Cancel</x-button>
-            </div>
-        </div>
-    @endif
+    <div wire:loading.delay.long.flex wire:target="search,projectFilter,statusFilter" class="hidden">
+        <x-skeleton variant="table" class="w-full" :rows="6" :cols="5" />
+    </div>
 
     @if ($links->isEmpty())
-        <x-empty-state title="No links" description="Log a link with source URL — duplicate domains warn but do not block." />
+        <x-empty-state
+            icon="links"
+            title="No links logged for this view"
+            description="Log a placement with its source URL. Duplicate source domains warn but never block."
+        >
+            @if ($canCreate)
+                <x-button icon="plus" wire:click="create">Log link</x-button>
+            @endif
+        </x-empty-state>
     @else
-        <div class="overflow-x-auto rounded-xl border border-line bg-surface">
-            <table class="min-w-full text-sm">
-                <thead class="border-b border-line text-left text-xs tracking-wide text-muted uppercase">
-                    <tr>
-                        <th class="px-4 py-3">Source</th>
-                        <th class="px-4 py-3">Target</th>
-                        <th class="px-4 py-3">Cost</th>
-                        <th class="px-4 py-3">Status</th>
-                        <th class="px-4 py-3"></th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-line">
-                    @foreach ($links as $link)
-                        <tr class="hover:bg-canvas/50">
-                            <td class="px-4 py-3">
-                                <p class="font-medium truncate max-w-[14rem]">{{ $link->source_domain }}</p>
-                                <p class="text-xs text-muted truncate max-w-[14rem]">{{ $link->project?->domain }} · {{ $link->type->label() }}</p>
-                            </td>
-                            <td class="px-4 py-3">
-                                <p class="truncate max-w-[12rem]">{{ $link->target_page }}</p>
-                                <p class="text-xs text-muted truncate max-w-[12rem]">“{{ $link->anchor_text }}”</p>
-                            </td>
-                            <td class="px-4 py-3 font-mono text-xs">
-                                {{ number_format($link->cost_paisa / 100, 2) }}
-                                @if ($link->expense_id)
-                                    <span class="block text-success">exp #{{ $link->expense_id }}</span>
-                                @endif
-                            </td>
-                            <td class="px-4 py-3">
+        <div wire:loading.class="opacity-60" wire:target="search,projectFilter,statusFilter">
+            <x-table :headers="[
+                'Source',
+                'Target',
+                ['label' => 'DR / DA', 'align' => 'right'],
+                ['label' => 'Date', 'align' => 'right'],
+                ['label' => 'PKR', 'align' => 'right'],
+                'Status',
+                ['label' => 'Actions', 'sr' => true, 'align' => 'right', 'width' => 'relative'],
+            ]">
+                @foreach ($links as $link)
+                    <x-table.row wire:key="link-{{ $link->id }}">
+                        <x-table.cell>
+                            <p class="max-w-[14rem] truncate font-mono text-xs font-medium text-ink">{{ $link->source_domain }}</p>
+                            <p class="mt-0.5 max-w-[14rem] truncate text-xs text-muted">{{ $link->project?->domain }} · {{ $link->type->label() }}</p>
+                        </x-table.cell>
+                        <x-table.cell>
+                            <p class="max-w-[12rem] truncate">{{ $link->target_page }}</p>
+                            <p class="mt-0.5 max-w-[12rem] truncate text-xs text-muted">“{{ $link->anchor_text }}”</p>
+                        </x-table.cell>
+                        <x-table.cell numeric muted nowrap>
+                            {{ $link->dr ?? '—' }} / {{ $link->da ?? '—' }}
+                        </x-table.cell>
+                        <x-table.cell numeric muted nowrap>
+                            {{ $link->link_date?->format('Y-m-d') ?? '—' }}
+                        </x-table.cell>
+                        <x-table.cell numeric>
+                            <x-money :paisa="$link->cost_paisa" />
+                            @if ($link->expense_id)
+                                <span class="mt-0.5 block text-[10px] text-success">exp #{{ $link->expense_id }}</span>
+                            @endif
+                        </x-table.cell>
+                        <x-table.cell>
+                            <div class="flex flex-col items-start gap-1">
                                 <x-badge :tone="match($link->workflow_status->value) {
                                     'approved' => 'success',
                                     'rejected' => 'danger',
                                     'submitted' => 'warn',
                                     default => 'accent',
                                 }">{{ $link->workflow_status->label() }}</x-badge>
-                                <x-badge tone="{{ $link->live_status->value === 'removed' ? 'warn' : 'accent' }}" class="mt-1">{{ $link->live_status->label() }}</x-badge>
-                            </td>
-                            <td class="px-4 py-3 text-right">
-                                <div class="flex flex-wrap justify-end gap-1">
-                                    @can('update', $link)
-                                        <x-button size="sm" variant="ghost" wire:click="edit({{ $link->id }})">Edit</x-button>
-                                    @endcan
-                                    @can('submit', $link)
-                                        @if (in_array($link->workflow_status->value, ['pending', 'rejected'], true))
-                                            <x-button size="sm" variant="secondary" wire:click="submit({{ $link->id }})">Submit</x-button>
-                                        @endif
-                                    @endcan
-                                    @can('approve', $link)
-                                        @if (in_array($link->workflow_status->value, ['submitted', 'pending'], true))
-                                            <x-button size="sm" wire:click="approve({{ $link->id }})">Approve</x-button>
-                                            <x-button size="sm" variant="danger" wire:click="openReject({{ $link->id }})">Reject</x-button>
-                                        @endif
-                                    @endcan
-                                </div>
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
+                                <x-badge size="sm" :tone="$link->live_status->value === 'removed' ? 'warn' : 'neutral'">{{ $link->live_status->label() }}</x-badge>
+                            </div>
+                        </x-table.cell>
+                        <x-table.cell align="right" nowrap>
+                            <div class="flex items-center justify-end gap-1">
+                                @can('update', $link)
+                                    <x-tooltip text="Edit link">
+                                        <x-button size="sm" variant="ghost" square icon="pencil" wire:click="edit({{ $link->id }})" aria-label="Edit link {{ $link->source_domain }}" />
+                                    </x-tooltip>
+                                @endcan
+                                @can('submit', $link)
+                                    @if (in_array($link->workflow_status->value, ['pending', 'rejected'], true))
+                                        <x-button size="sm" variant="secondary" wire:click="submit({{ $link->id }})">Submit</x-button>
+                                    @endif
+                                @endcan
+                                @can('approve', $link)
+                                    @if (in_array($link->workflow_status->value, ['submitted', 'pending'], true))
+                                        <x-button size="sm" icon="check" wire:click="approve({{ $link->id }})">Approve</x-button>
+                                        <x-tooltip text="Reject link">
+                                            <x-button size="sm" variant="danger-ghost" square icon="x" wire:click="openReject({{ $link->id }})" aria-label="Reject link {{ $link->source_domain }}" />
+                                        </x-tooltip>
+                                    @endif
+                                @endcan
+                            </div>
+                        </x-table.cell>
+                    </x-table.row>
+                @endforeach
+            </x-table>
         </div>
+
         <div>{{ $links->links() }}</div>
     @endif
+
+    <x-modal
+        :show="$showForm"
+        :title="$editingId ? 'Edit link' : 'Log link'"
+        subtitle="Source domain is derived from the URL and checked for duplicates."
+        close="cancel"
+        size="lg"
+    >
+        <form id="link-form" wire:submit="save" class="grid gap-4 sm:grid-cols-2">
+            <x-select
+                label="Project"
+                wire:model="project_id"
+                placeholder="Select…"
+                :error="$errors->first('project_id')"
+                class="sm:col-span-2"
+                required
+            >
+                @foreach ($projects as $project)
+                    <option value="{{ $project->id }}">{{ $project->domain }}</option>
+                @endforeach
+            </x-select>
+
+            <x-input label="Source URL" wire:model="source_url" :error="$errors->first('source_url')" class="sm:col-span-2" required />
+            <x-input label="Target page" wire:model="target_page" :error="$errors->first('target_page')" required />
+            <x-input label="Anchor text" wire:model="anchor_text" :error="$errors->first('anchor_text')" required />
+
+            <x-select label="Type" wire:model="type" :error="$errors->first('type')">
+                @foreach ($typeOptions as $value => $label)
+                    <option value="{{ $value }}">{{ $label }}</option>
+                @endforeach
+            </x-select>
+
+            <x-input label="Cost" type="number" step="0.01" min="0" wire:model="cost" :error="$errors->first('cost')" suffix="PKR" />
+            <x-input label="Date" type="date" wire:model="link_date" :error="$errors->first('link_date')" />
+
+            <x-select label="Live status" wire:model="live_status" :error="$errors->first('live_status')">
+                @foreach ($liveStatusOptions as $value => $label)
+                    <option value="{{ $value }}">{{ $label }}</option>
+                @endforeach
+            </x-select>
+
+            <div class="sm:col-span-2">
+                <x-button type="button" variant="link" size="sm" wire:click="$toggle('showMore')">
+                    {{ $showMore ? 'Hide' : 'More' }} details
+                </x-button>
+            </div>
+
+            @if ($showMore)
+                <x-input label="DR" type="number" min="0" max="100" wire:model="dr" :error="$errors->first('dr')" />
+                <x-input label="DA" type="number" min="0" max="100" wire:model="da" :error="$errors->first('da')" />
+                <x-select label="Assignee" wire:model="assigned_to" placeholder="Unassigned" :error="$errors->first('assigned_to')" class="sm:col-span-2">
+                    @foreach ($users as $user)
+                        <option value="{{ $user->id }}">{{ $user->name }}</option>
+                    @endforeach
+                </x-select>
+            @endif
+        </form>
+
+        <x-slot:footer>
+            <x-button variant="ghost" wire:click="cancel">Cancel</x-button>
+            <x-button type="submit" form="link-form" target="save">Save link</x-button>
+        </x-slot:footer>
+    </x-modal>
+
+    <x-modal :show="$showReject" title="Reject link" subtitle="The reason is stored on the link." close="cancel" size="sm">
+        <x-textarea
+            label="Rejection reason"
+            wire:model="rejection_reason"
+            rows="4"
+            placeholder="Reason required…"
+            :error="$errors->first('rejection_reason')"
+            required
+        />
+
+        <x-slot:footer>
+            <x-button variant="ghost" wire:click="cancel">Cancel</x-button>
+            <x-button variant="danger" wire:click="reject">Confirm</x-button>
+        </x-slot:footer>
+    </x-modal>
 </div>

@@ -82,6 +82,11 @@ class Index extends Component
             $this->projectFilter = (string) session('links.last_project_id');
         }
         $this->syncBudgetFields();
+
+        // Quick-create deep link (?new=1) opens the form straight away
+        if (request()->boolean('new') && Auth::user()?->hasPermission('links.create')) {
+            $this->create();
+        }
     }
 
     public function updatedProjectFilter(): void
@@ -129,7 +134,7 @@ class Index extends Component
         ]);
 
         $this->editingBudget = false;
-        session()->flash('status', 'Monthly link target & budget saved.');
+        $this->dispatch('toast', message: 'Monthly link target & budget saved.', tone: 'success');
     }
 
     public function create(): void
@@ -213,9 +218,9 @@ class Index extends Component
         session(['links.last_project_id' => $validated['project_id']]);
 
         if ($this->domainWarning) {
-            session()->flash('status', 'Link saved. '.$this->domainWarning);
+            $this->dispatch('toast', message: 'Link saved. '.$this->domainWarning, tone: 'success');
         } else {
-            session()->flash('status', 'Link saved.');
+            $this->dispatch('toast', message: 'Link saved.', tone: 'success');
         }
 
         $this->showForm = false;
@@ -229,9 +234,9 @@ class Index extends Component
 
         try {
             $workflow->submit($link);
-            session()->flash('status', 'Link submitted for approval.');
+            $this->dispatch('toast', message: 'Link submitted for approval.', tone: 'success');
         } catch (ValidationException $e) {
-            session()->flash('error', collect($e->errors())->flatten()->first());
+            $this->dispatch('toast', message: collect($e->errors())->flatten()->first(), tone: 'danger');
         }
     }
 
@@ -242,9 +247,9 @@ class Index extends Component
 
         try {
             $workflow->approve($link, Auth::user());
-            session()->flash('status', 'Link approved. Cost posted as expense.');
+            $this->dispatch('toast', message: 'Link approved. Cost posted as expense.', tone: 'success');
         } catch (ValidationException $e) {
-            session()->flash('error', collect($e->errors())->flatten()->first());
+            $this->dispatch('toast', message: collect($e->errors())->flatten()->first(), tone: 'danger');
         }
     }
 
@@ -266,7 +271,7 @@ class Index extends Component
             $workflow->reject($link, $this->rejection_reason);
             $this->showReject = false;
             $this->editingId = null;
-            session()->flash('status', 'Link rejected.');
+            $this->dispatch('toast', message: 'Link rejected.', tone: 'success');
         } catch (ValidationException $e) {
             foreach ($e->errors() as $key => $messages) {
                 foreach ($messages as $message) {

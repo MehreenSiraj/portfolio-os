@@ -146,7 +146,7 @@ class Show extends Component
         $this->project->refresh();
         $this->fillFromProject();
         $this->editingDetails = false;
-        session()->flash('status', 'Project details saved.');
+        $this->dispatch('toast', message: 'Project details saved.', tone: 'success');
     }
 
     public function startEditOwnership(): void
@@ -198,7 +198,7 @@ class Show extends Component
         $this->project->load('owners');
         $this->fillFromProject();
         $this->editingOwnership = false;
-        session()->flash('status', 'Ownership updated.');
+        $this->dispatch('toast', message: 'Ownership updated.', tone: 'success');
     }
 
     public function cancelOwnership(): void
@@ -231,7 +231,7 @@ class Show extends Component
         $this->project->load('teamMembers');
         $this->fillFromProject();
         $this->editingTeam = false;
-        session()->flash('status', 'Team assignments saved.');
+        $this->dispatch('toast', message: 'Team assignments saved.', tone: 'success');
     }
 
     public function cancelTeam(): void
@@ -310,7 +310,7 @@ class Show extends Component
         if ($isCreating) {
             $payload['secret'] = $validated['cred_secret'] ?: null;
             Credential::query()->create($payload);
-            session()->flash('status', 'Credential saved.');
+            $this->dispatch('toast', message: 'Credential saved.', tone: 'success');
         } else {
             $credential = Credential::query()->findOrFail($this->editingCredentialId);
             if (filled($validated['cred_secret'])) {
@@ -318,7 +318,7 @@ class Show extends Component
             }
             $credential->update($payload);
             unset($this->revealed[$credential->id]);
-            session()->flash('status', 'Credential updated.');
+            $this->dispatch('toast', message: 'Credential updated.', tone: 'success');
         }
 
         $this->showCredentialForm = false;
@@ -333,7 +333,7 @@ class Show extends Component
         $credential->delete();
         unset($this->revealed[$credentialId]);
         $this->project->load('credentials');
-        session()->flash('status', 'Credential removed.');
+        $this->dispatch('toast', message: 'Credential removed.', tone: 'success');
     }
 
     public function revealCredential(int $credentialId, CredentialVaultService $vault): void
@@ -390,7 +390,7 @@ class Show extends Component
 
         $this->upload = null;
         $this->project->load('media');
-        session()->flash('status', 'File uploaded.');
+        $this->dispatch('toast', message: 'File uploaded.', tone: 'success');
     }
 
     public function deleteMedia(int $mediaId): void
@@ -400,7 +400,7 @@ class Show extends Component
         $media->deleteFile();
         $media->delete();
         $this->project->load('media');
-        session()->flash('status', 'File removed.');
+        $this->dispatch('toast', message: 'File removed.', tone: 'success');
     }
 
     public function render()

@@ -55,6 +55,14 @@ class Index extends Component
 
     public string $bulkStatus = '';
 
+    public function mount(): void
+    {
+        // Quick-create deep link from the command palette / "New" menu.
+        if (request()->boolean('new') && Auth::user()?->hasPermission('projects.create')) {
+            $this->create();
+        }
+    }
+
     public function updatingSearch(): void
     {
         $this->resetPage();
@@ -194,7 +202,7 @@ class Index extends Component
 
         $this->showForm = false;
         $this->resetForm();
-        session()->flash('status', $isCreating ? 'Project created.' : 'Project updated.');
+        $this->dispatch('toast', message: $isCreating ? 'Project created.' : 'Project updated.', tone: 'success');
     }
 
     public function delete(int $projectId): void
@@ -202,7 +210,7 @@ class Index extends Component
         $project = Project::query()->findOrFail($projectId);
         $this->authorize('delete', $project);
         $project->delete();
-        session()->flash('status', 'Project archived.');
+        $this->dispatch('toast', message: 'Project archived.', tone: 'success');
     }
 
     public function applyBulkStatus(): void
@@ -228,7 +236,7 @@ class Index extends Component
 
         $this->selectedIds = [];
         $this->bulkStatus = '';
-        session()->flash('status', 'Bulk status updated.');
+        $this->dispatch('toast', message: 'Bulk status updated.', tone: 'success');
     }
 
     public function cancel(): void

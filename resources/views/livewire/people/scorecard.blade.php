@@ -1,92 +1,152 @@
-<div>
-    <div class="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-            <p class="font-mono text-[11px] tracking-[0.16em] text-muted uppercase">People</p>
-            <h1 class="mt-2 text-3xl font-semibold tracking-tight">Scorecard</h1>
-            <p class="mt-1 text-sm text-muted">
-                Derived from tasks, articles, and links for {{ $subject->name }} · {{ $tz }}.
-            </p>
+<div class="space-y-6">
+    <x-page-header
+        title="Scorecard"
+        subtitle="Derived from tasks, articles and links for {{ $subject->name }} · {{ $tz }}."
+        :breadcrumbs="[['label' => 'People']]"
+    >
+        <x-slot:meta>
+            <x-badge tone="neutral">{{ $subject->name }}</x-badge>
+            <x-badge tone="neutral" size="sm">{{ $card['year_month'] }}</x-badge>
+        </x-slot:meta>
+        <x-slot:actions>
+            @if (auth()->user()?->hasPermission('work_logs.view'))
+                <x-button variant="secondary" icon="worklogs" href="{{ route('people.work-logs') }}" wire:navigate>Work logs</x-button>
+            @endif
+        </x-slot:actions>
+    </x-page-header>
+
+    <x-filter-bar target="month,userId">
+        <x-input
+            type="month"
+            size="sm"
+            data-page-search
+            class="w-auto"
+            wire:model.live="month"
+            aria-label="Scorecard month"
+        />
+
+        @if ($canFilterUsers)
+            <x-select size="sm" class="w-auto" wire:model.live="userId" aria-label="Filter by person">
+                @foreach ($viewableUsers as $u)
+                    <option value="{{ $u->id }}">{{ $u->name }}</option>
+                @endforeach
+            </x-select>
+        @endif
+
+        <x-slot:trailing>
+            {{ $card['period']['local_from'] }} → {{ $card['period']['local_to'] }}
+        </x-slot:trailing>
+    </x-filter-bar>
+
+    <div wire:loading.delay.long.flex wire:target="month,userId" class="hidden">
+        <x-skeleton variant="cards" :rows="4" class="w-full" />
+    </div>
+
+    <div wire:loading.class="opacity-60" wire:target="month,userId" class="space-y-6 transition-opacity duration-150">
+        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <x-stat
+                label="Tasks done"
+                :value="$card['tasks']['completed']"
+                icon="tasks"
+                tone="accent"
+                hint="of {{ $card['tasks']['assigned'] }} in scope"
+            />
+            <x-stat
+                label="On-time %"
+                :value="$card['tasks']['on_time_pct'] !== null ? $card['tasks']['on_time_pct'].'%' : '—'"
+                icon="target"
+                :tone="$card['tasks']['on_time_pct'] !== null && $card['tasks']['on_time_pct'] >= 80 ? 'success' : 'warn'"
+                hint="{{ $card['tasks']['on_time'] }} on-time approvals"
+            />
+            <x-stat
+                label="Rejection rate"
+                :value="$card['tasks']['rejection_rate_pct'] !== null ? $card['tasks']['rejection_rate_pct'].'%' : '—'"
+                icon="alert"
+                :tone="$card['tasks']['rejected'] > 0 ? 'danger' : 'neutral'"
+                hint="{{ $card['tasks']['rejected'] }} rejected"
+            />
+            <x-stat
+                label="Avg turnaround"
+                :value="$card['tasks']['avg_turnaround_hours'] !== null ? $card['tasks']['avg_turnaround_hours'].'h' : '—'"
+                icon="clock"
+                tone="info"
+                hint="submit → approve"
+            />
         </div>
-        <div class="flex flex-wrap gap-3">
-            <div>
-                <label class="mb-1 block text-xs font-medium text-muted">Month</label>
-                <input type="month" wire:model.live="month" class="rounded-lg border border-line bg-surface px-3 py-2 text-sm" />
-            </div>
-            @if ($canFilterUsers)
-                <div>
-                    <label class="mb-1 block text-xs font-medium text-muted">Person</label>
-                    <select wire:model.live="userId" class="rounded-lg border border-line bg-surface px-3 py-2 text-sm">
-                        @foreach ($viewableUsers as $u)
-                            <option value="{{ $u->id }}">{{ $u->name }}</option>
-                        @endforeach
-                    </select>
+
+        <div class="grid gap-4 lg:grid-cols-3">
+            <x-card title="Delivery" subtitle="Actual against what was in scope this month." icon="approvals">
+                <div class="space-y-4">
+                    <x-progress
+                        :value="$card['tasks']['completed']"
+                        :max="max(1, $card['tasks']['assigned'])"
+                        label="Tasks completed"
+                        caption="{{ $card['tasks']['completed'] }} / {{ $card['tasks']['assigned'] }}"
+                        tone="accent"
+                    />
+                    <x-progress
+                        :value="$card['tasks']['on_time']"
+                        :max="max(1, $card['tasks']['completed'])"
+                        label="On time"
+                        caption="{{ $card['tasks']['on_time'] }} / {{ $card['tasks']['completed'] }}"
+                        :tone="$card['tasks']['on_time'] === $card['tasks']['completed'] ? 'success' : 'warn'"
+                    />
+                    <x-progress
+                        :value="$card['articles']['approved']"
+                        :max="max(1, $card['articles']['count'])"
+                        label="Articles approved"
+                        caption="{{ $card['articles']['approved'] }} / {{ $card['articles']['count'] }}"
+                        tone="success"
+                    />
                 </div>
-            @endif
-        </div>
-    </div>
+            </x-card>
 
-    <div class="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div class="rounded-xl border border-line bg-surface px-5 py-4">
-            <p class="font-mono text-[11px] tracking-wide text-muted uppercase">Tasks done</p>
-            <p class="mt-2 text-3xl font-semibold tabular-nums">{{ $card['tasks']['completed'] }}</p>
-            <p class="mt-1 text-xs text-muted">of {{ $card['tasks']['assigned'] }} in scope</p>
-        </div>
-        <div class="rounded-xl border border-line bg-surface px-5 py-4">
-            <p class="font-mono text-[11px] tracking-wide text-muted uppercase">On-time %</p>
-            <p class="mt-2 text-3xl font-semibold tabular-nums">
-                {{ $card['tasks']['on_time_pct'] !== null ? $card['tasks']['on_time_pct'].'%' : '—' }}
-            </p>
-            <p class="mt-1 text-xs text-muted">{{ $card['tasks']['on_time'] }} on-time approvals</p>
-        </div>
-        <div class="rounded-xl border border-line bg-surface px-5 py-4">
-            <p class="font-mono text-[11px] tracking-wide text-muted uppercase">Rejection rate</p>
-            <p class="mt-2 text-3xl font-semibold tabular-nums">
-                {{ $card['tasks']['rejection_rate_pct'] !== null ? $card['tasks']['rejection_rate_pct'].'%' : '—' }}
-            </p>
-            <p class="mt-1 text-xs text-muted">{{ $card['tasks']['rejected'] }} rejected</p>
-        </div>
-        <div class="rounded-xl border border-line bg-surface px-5 py-4">
-            <p class="font-mono text-[11px] tracking-wide text-muted uppercase">Avg turnaround</p>
-            <p class="mt-2 text-3xl font-semibold tabular-nums">
-                {{ $card['tasks']['avg_turnaround_hours'] !== null ? $card['tasks']['avg_turnaround_hours'].'h' : '—' }}
-            </p>
-            <p class="mt-1 text-xs text-muted">submit → approve</p>
-        </div>
-    </div>
+            <x-card title="Articles" subtitle="Written in this month’s window." icon="articles" flush class="overflow-hidden">
+                <x-table flush :headers="['Measure', ['label' => 'Value', 'align' => 'right']]">
+                    <x-table.row>
+                        <x-table.cell muted>In scope</x-table.cell>
+                        <x-table.cell numeric>{{ $card['articles']['count'] }}</x-table.cell>
+                    </x-table.row>
+                    <x-table.row>
+                        <x-table.cell muted>Approved</x-table.cell>
+                        <x-table.cell numeric>{{ $card['articles']['approved'] }}</x-table.cell>
+                    </x-table.row>
+                    <x-table.row>
+                        <x-table.cell muted>Words</x-table.cell>
+                        <x-table.cell numeric>{{ number_format($card['articles']['words']) }}</x-table.cell>
+                    </x-table.row>
+                    <x-table.row>
+                        <x-table.cell muted>Approved cost</x-table.cell>
+                        <x-table.cell numeric><x-money :paisa="$card['articles']['cost_paisa']" currency="PKR" /></x-table.cell>
+                    </x-table.row>
+                    <x-table.row>
+                        <x-table.cell muted>Links approved</x-table.cell>
+                        <x-table.cell numeric>{{ $card['links']['approved'] }}</x-table.cell>
+                    </x-table.row>
+                    <x-table.row>
+                        <x-table.cell muted>Link cost</x-table.cell>
+                        <x-table.cell numeric><x-money :paisa="$card['links']['cost_paisa']" currency="PKR" /></x-table.cell>
+                    </x-table.row>
+                </x-table>
+            </x-card>
 
-    <div class="mb-8 grid gap-4 lg:grid-cols-3">
-        <div class="rounded-xl border border-line bg-surface p-5">
-            <h2 class="text-sm font-semibold">Articles</h2>
-            <dl class="mt-3 space-y-2 text-sm">
-                <div class="flex justify-between"><dt class="text-muted">In scope</dt><dd class="font-medium tabular-nums">{{ $card['articles']['count'] }}</dd></div>
-                <div class="flex justify-between"><dt class="text-muted">Approved</dt><dd class="font-medium tabular-nums">{{ $card['articles']['approved'] }}</dd></div>
-                <div class="flex justify-between"><dt class="text-muted">Words</dt><dd class="font-medium tabular-nums">{{ number_format($card['articles']['words']) }}</dd></div>
-                <div class="flex justify-between"><dt class="text-muted">Approved cost</dt><dd class="font-medium tabular-nums">{{ number_format($card['articles']['cost_paisa'] / 100, 2) }} PKR</dd></div>
-            </dl>
-        </div>
-        <div class="rounded-xl border border-line bg-surface p-5">
-            <h2 class="text-sm font-semibold">Links</h2>
-            <dl class="mt-3 space-y-2 text-sm">
-                <div class="flex justify-between"><dt class="text-muted">Approved</dt><dd class="font-medium tabular-nums">{{ $card['links']['approved'] }}</dd></div>
-                <div class="flex justify-between"><dt class="text-muted">Cost</dt><dd class="font-medium tabular-nums">{{ number_format($card['links']['cost_paisa'] / 100, 2) }} PKR</dd></div>
-            </dl>
-        </div>
-        <div class="rounded-xl border border-line bg-surface p-5">
-            <h2 class="text-sm font-semibold">Output cost</h2>
-            <p class="mt-3 text-2xl font-semibold tabular-nums">{{ $card['output_cost_formatted'] }}</p>
-            <p class="mt-1 text-xs text-muted">Articles + links approved cost in this month</p>
+            <x-card title="Output cost" subtitle="Articles + links approved in this month." icon="revenue">
+                <p class="font-mono text-figure font-medium text-ink tabular-nums">{{ $card['output_cost_formatted'] }}</p>
 
-            @if (! empty($card['pay_rates']))
-                <h3 class="mt-5 text-xs font-semibold uppercase tracking-wide text-muted">Your pay rates</h3>
-                <ul class="mt-2 space-y-1 text-sm">
-                    @foreach ($card['pay_rates'] as $rate)
-                        <li class="flex justify-between gap-2">
-                            <span class="text-muted">{{ $rate['type_label'] }}</span>
-                            <span class="font-medium tabular-nums">{{ $rate['amount_formatted'] }}</span>
-                        </li>
-                    @endforeach
-                </ul>
-            @endif
+                @if (! empty($card['pay_rates']))
+                    <h3 class="mt-6 font-mono text-eyebrow text-muted uppercase">Your pay rates</h3>
+                    <ul class="mt-2 divide-y divide-line">
+                        @foreach ($card['pay_rates'] as $rate)
+                            <li class="flex items-center justify-between gap-2 py-2 text-sm">
+                                <span class="text-muted">{{ $rate['type_label'] }}</span>
+                                <span class="font-mono text-xs text-ink tabular-nums">{{ $rate['amount_formatted'] }}</span>
+                            </li>
+                        @endforeach
+                    </ul>
+                @else
+                    <p class="mt-4 text-xs text-muted">No pay rates recorded for you yet.</p>
+                @endif
+            </x-card>
         </div>
     </div>
 </div>

@@ -1,21 +1,14 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
-import { bunny } from 'laravel-vite-plugin/fonts';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
     plugins: [
+        // Fonts are vendored in resources/fonts and declared in app.css, so the
+        // build never reaches the network — it has to run offline before FTP.
         laravel({
             input: ['resources/css/app.css', 'resources/js/app.js'],
             refresh: true,
-            fonts: [
-                bunny('Plus Jakarta Sans', {
-                    weights: [400, 500, 600, 700],
-                }),
-                bunny('IBM Plex Mono', {
-                    weights: [400, 500],
-                }),
-            ],
         }),
         tailwindcss(),
     ],

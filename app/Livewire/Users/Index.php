@@ -116,7 +116,7 @@ class Index extends Component
 
         $this->showForm = false;
         $this->resetForm();
-        session()->flash('status', $isCreating ? 'User created.' : 'User updated.');
+        $this->dispatch('toast', message: $isCreating ? 'User created.' : 'User updated.', tone: 'success');
     }
 
     public function toggleActive(int $userId): void
@@ -126,14 +126,14 @@ class Index extends Component
         $user = User::query()->findOrFail($userId);
 
         if ($user->id === Auth::id()) {
-            session()->flash('error', 'You cannot deactivate your own account.');
+            $this->dispatch('toast', message: 'You cannot deactivate your own account.', tone: 'danger');
 
             return;
         }
 
         $user->update(['is_active' => ! $user->is_active]);
 
-        session()->flash('status', $user->is_active ? 'User activated.' : 'User deactivated.');
+        $this->dispatch('toast', message: $user->is_active ? 'User activated.' : 'User deactivated.', tone: 'success');
     }
 
     public function cancel(): void

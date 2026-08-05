@@ -1,170 +1,222 @@
 <div class="space-y-6">
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-            <p class="font-mono text-[11px] tracking-[0.16em] text-muted uppercase">Work</p>
-            <h1 class="mt-2 text-3xl font-semibold tracking-tight">Tasks</h1>
-            <p class="mt-1 text-sm text-muted">Setup checklists, recurring work, and ad-hoc assignments.</p>
-        </div>
+    <x-page-header
+        title="Tasks"
+        subtitle="Setup checklists, recurring work, and ad-hoc assignments."
+        :breadcrumbs="[['label' => 'Work'], ['label' => 'Tasks']]"
+    >
         @if ($canCreate)
-            <x-button wire:click="create">New task</x-button>
+            <x-slot:actions>
+                <x-button icon="plus" wire:click="create">New task</x-button>
+            </x-slot:actions>
         @endif
-    </div>
+    </x-page-header>
 
-    <div class="flex flex-col gap-3 lg:flex-row lg:items-center">
-        <div class="max-w-sm flex-1">
-            <x-input type="search" wire:model.live.debounce.300ms="search" placeholder="Search tasks…" />
-        </div>
-        <select wire:model.live="projectFilter" class="rounded-lg border border-line bg-surface px-3 py-2 text-sm sm:w-48">
-            <option value="">All projects</option>
+    <x-filter-bar target="search,projectFilter,statusFilter,mineOnly">
+        <x-input
+            class="min-w-[12rem] flex-1 sm:max-w-xs"
+            size="sm"
+            icon="search"
+            type="search"
+            data-page-search
+            wire:model.live.debounce.300ms="search"
+            placeholder="Search tasks…"
+            aria-label="Search tasks"
+        />
+        <x-select size="sm" class="w-auto" wire:model.live="projectFilter" placeholder="All projects" aria-label="Filter by project">
             @foreach ($projects as $project)
                 <option value="{{ $project->id }}">{{ $project->domain }}</option>
             @endforeach
-        </select>
-        <select wire:model.live="statusFilter" class="rounded-lg border border-line bg-surface px-3 py-2 text-sm sm:w-40">
-            <option value="">All statuses</option>
+        </x-select>
+        <x-select size="sm" class="w-auto" wire:model.live="statusFilter" placeholder="All statuses" aria-label="Filter by status">
             @foreach ($statusOptions as $value => $label)
                 <option value="{{ $value }}">{{ $label }}</option>
             @endforeach
-        </select>
-        <label class="flex items-center gap-2 text-sm text-muted">
-            <input type="checkbox" wire:model.live="mineOnly" value="1" class="rounded border-line">
-            Mine only
-        </label>
+        </x-select>
+        <x-checkbox class="px-1" label="Mine only" wire:model.live="mineOnly" value="1" />
+
+        <x-slot:trailing>{{ $tasks->total() }} tasks</x-slot:trailing>
+    </x-filter-bar>
+
+    <div wire:loading.delay.long.flex wire:target="search,projectFilter,statusFilter,mineOnly" class="hidden">
+        <x-skeleton variant="table" class="w-full" :rows="6" :cols="5" />
     </div>
 
-    @if (($canAssign || $canApprove) && $tasks->isNotEmpty())
-        <div class="flex flex-wrap items-center gap-2 rounded-xl border border-line bg-surface px-4 py-3">
-            <span class="text-sm text-muted">Bulk</span>
-            @if ($canAssign)
-                <select wire:model="bulkAssignTo" class="rounded-lg border border-line bg-surface px-3 py-1.5 text-sm">
-                    <option value="">Assign to…</option>
-                    @foreach ($users as $user)
-                        <option value="{{ $user->id }}">{{ $user->name }}</option>
-                    @endforeach
-                </select>
-                <x-button size="sm" variant="secondary" wire:click="applyBulkAssign">Assign</x-button>
+    @if ($tasks->isEmpty())
+        <x-empty-state
+            icon="tasks"
+            title="No tasks match this view"
+            description="Create a project to auto-generate its setup SEO checklist, or add ad-hoc work for the team."
+        >
+            @if ($canCreate)
+                <x-button icon="plus" wire:click="create">New task</x-button>
             @endif
-            @if ($canApprove || $canAssign)
-                <select wire:model="bulkStatus" class="rounded-lg border border-line bg-surface px-3 py-1.5 text-sm">
-                    <option value="">Status…</option>
-                    @foreach ($statusOptions as $value => $label)
-                        @if (! in_array($value, ['rejected', 'approved'], true) || $canApprove)
-                            <option value="{{ $value }}">{{ $label }}</option>
-                        @endif
-                    @endforeach
-                </select>
-                <x-button size="sm" variant="secondary" wire:click="applyBulkStatus">Apply</x-button>
-            @endif
-            <span class="text-xs text-muted">{{ count($selectedIds) }} selected</span>
-        </div>
-    @endif
+        </x-empty-state>
+    @else
+        @php
+            $selectable = $canAssign || $canApprove;
+            $headers = array_values(array_filter([
+                $selectable ? ['label' => 'Select', 'sr' => true, 'width' => 'relative w-10'] : null,
+                'Task',
+                'Project',
+                'Assignee',
+                ['label' => 'Due', 'align' => 'right'],
+                'Status',
+                ['label' => 'Actions', 'sr' => true, 'align' => 'right', 'width' => 'relative'],
+            ]));
+        @endphp
 
-    @if ($showForm)
-        <div class="rounded-xl border border-line bg-surface p-5">
-            <h2 class="text-base font-semibold">{{ $editingId ? 'Edit task' : 'New task' }}</h2>
-            <form wire:submit="save" class="mt-4 grid gap-4 sm:grid-cols-2">
-                <div class="space-y-1.5 sm:col-span-2">
-                    <label class="block text-sm font-medium">Project</label>
-                    <select wire:model="project_id" class="block w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm">
-                        <option value="">Select…</option>
-                        @foreach ($projects as $project)
-                            <option value="{{ $project->id }}">{{ $project->domain }}</option>
-                        @endforeach
-                    </select>
-                    @error('project_id') <p class="text-xs text-danger">{{ $message }}</p> @enderror
-                </div>
-                <x-input label="Title" wire:model="title" error="{{ $errors->first('title') }}" class="sm:col-span-2" />
-                <div class="sm:col-span-2 space-y-1.5">
-                    <label class="block text-sm font-medium">Description</label>
-                    <textarea wire:model="description" rows="3" class="block w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm"></textarea>
-                </div>
-                <div class="space-y-1.5">
-                    <label class="block text-sm font-medium">Type</label>
-                    <select wire:model="type" class="block w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm">
-                        @foreach ($typeOptions as $value => $label)
-                            @if ($value !== 'setup')
-                                <option value="{{ $value }}">{{ $label }}</option>
+        <div wire:loading.class="opacity-60" wire:target="search,projectFilter,statusFilter,mineOnly">
+            <x-table :headers="$headers">
+                @foreach ($tasks as $task)
+                    <x-table.row wire:key="task-{{ $task->id }}" :selected="in_array($task->id, $selectedIds)">
+                        @if ($selectable)
+                            <x-table.cell tight>
+                                <x-checkbox
+                                    wire:model.live="selectedIds"
+                                    value="{{ $task->id }}"
+                                    aria-label="Select {{ $task->title }}"
+                                />
+                            </x-table.cell>
+                        @endif
+                        <x-table.cell class="min-w-[12rem]">
+                            <a href="{{ route('tasks.show', $task) }}" wire:navigate class="font-medium text-ink transition-colors hover:text-accent">
+                                {{ $task->title }}
+                            </a>
+                            <p class="mt-0.5 font-mono text-[10px] tracking-[0.08em] text-faint uppercase">{{ $task->type->label() }}</p>
+                        </x-table.cell>
+                        <x-table.cell muted nowrap>{{ $task->project?->domain }}</x-table.cell>
+                        <x-table.cell>
+                            @if ($task->assignee)
+                                <span class="inline-flex items-center gap-2">
+                                    <x-avatar :name="$task->assignee->name" size="xs" />
+                                    {{ $task->assignee->name }}
+                                </span>
+                            @else
+                                <span class="text-faint">—</span>
                             @endif
-                        @endforeach
-                    </select>
-                </div>
-                <div class="space-y-1.5">
-                    <label class="block text-sm font-medium">Recurrence</label>
-                    <select wire:model="recurrence_frequency" class="block w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm">
-                        <option value="">None</option>
-                        @foreach ($frequencyOptions as $value => $label)
-                            <option value="{{ $value }}">{{ $label }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="space-y-1.5">
-                    <label class="block text-sm font-medium">Assignee</label>
-                    <select wire:model="assigned_to" class="block w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm">
-                        <option value="">Unassigned</option>
+                        </x-table.cell>
+                        <x-table.cell numeric muted nowrap>
+                            {{ $task->due_date?->timezone(\App\Support\AppSettings::get('display_timezone', 'Asia/Karachi'))->format('Y-m-d') ?? '—' }}
+                        </x-table.cell>
+                        <x-table.cell>
+                            <x-badge :tone="match($task->status->value) {
+                                'approved' => 'success',
+                                'rejected' => 'danger',
+                                'submitted' => 'warn',
+                                default => 'accent',
+                            }">{{ $task->status->label() }}</x-badge>
+                        </x-table.cell>
+                        <x-table.cell align="right" nowrap>
+                            <div class="flex items-center justify-end gap-1">
+                                @can('update', $task)
+                                    <x-tooltip text="Edit task">
+                                        <x-button size="sm" variant="ghost" square icon="pencil" wire:click="edit({{ $task->id }})" aria-label="Edit {{ $task->title }}" />
+                                    </x-tooltip>
+                                @endcan
+                                <x-tooltip text="Open task">
+                                    <x-button
+                                        size="sm"
+                                        variant="ghost"
+                                        square
+                                        icon="arrow-right"
+                                        :href="route('tasks.show', $task)"
+                                        wire:navigate
+                                        aria-label="Open {{ $task->title }}"
+                                    />
+                                </x-tooltip>
+                            </div>
+                        </x-table.cell>
+                    </x-table.row>
+                @endforeach
+            </x-table>
+        </div>
+
+        <div>{{ $tasks->links() }}</div>
+
+        @if ($canAssign || $canApprove)
+            <x-bulk-bar :count="count($selectedIds)" clear="clearSelection">
+                @if ($canAssign)
+                    <x-select size="sm" class="w-auto" wire:model="bulkAssignTo" placeholder="Assign to…" aria-label="Assign selected tasks to">
                         @foreach ($users as $user)
                             <option value="{{ $user->id }}">{{ $user->name }}</option>
                         @endforeach
-                    </select>
-                </div>
-                <x-input label="Due date" type="date" wire:model="due_date" error="{{ $errors->first('due_date') }}" />
-                <x-input label="Time spent (minutes)" type="number" min="0" wire:model="time_spent_minutes" />
-                <div class="flex gap-2 sm:col-span-2">
-                    <x-button type="submit">Save</x-button>
-                    <x-button type="button" variant="secondary" wire:click="cancel">Cancel</x-button>
-                </div>
-            </form>
-        </div>
+                    </x-select>
+                    <x-button size="sm" variant="secondary" wire:click="applyBulkAssign">Assign</x-button>
+                @endif
+                @if ($canApprove || $canAssign)
+                    <x-select size="sm" class="w-auto" wire:model="bulkStatus" placeholder="Status…" aria-label="Set status of selected tasks">
+                        @foreach ($statusOptions as $value => $label)
+                            @if (! in_array($value, ['rejected', 'approved'], true) || $canApprove)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endif
+                        @endforeach
+                    </x-select>
+                    <x-button size="sm" variant="secondary" wire:click="applyBulkStatus" wire:confirm="Apply this status to the selected tasks?">Apply</x-button>
+                @endif
+            </x-bulk-bar>
+        @endif
     @endif
 
-    @if ($tasks->isEmpty())
-        <x-empty-state title="No tasks" description="Create a project to auto-generate setup SEO checklists, or add ad-hoc work." />
-    @else
-        <div class="overflow-x-auto rounded-xl border border-line bg-surface">
-            <table class="min-w-full text-sm">
-                <thead class="border-b border-line text-left text-xs tracking-wide text-muted uppercase">
-                    <tr>
-                        @if ($canAssign || $canApprove)
-                            <th class="px-3 py-3 w-10"></th>
-                        @endif
-                        <th class="px-4 py-3">Task</th>
-                        <th class="px-4 py-3">Project</th>
-                        <th class="px-4 py-3">Assignee</th>
-                        <th class="px-4 py-3">Due</th>
-                        <th class="px-4 py-3">Status</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-line">
-                    @foreach ($tasks as $task)
-                        <tr class="hover:bg-canvas/50">
-                            @if ($canAssign || $canApprove)
-                                <td class="px-3 py-3">
-                                    <input type="checkbox" value="{{ $task->id }}" wire:model.live="selectedIds" class="rounded border-line">
-                                </td>
-                            @endif
-                            <td class="px-4 py-3">
-                                <a href="{{ route('tasks.show', $task) }}" wire:navigate class="font-medium text-ink hover:text-accent">
-                                    {{ $task->title }}
-                                </a>
-                                <p class="mt-0.5 font-mono text-[11px] text-muted">{{ $task->type->label() }}</p>
-                            </td>
-                            <td class="px-4 py-3 text-muted">{{ $task->project?->domain }}</td>
-                            <td class="px-4 py-3">{{ $task->assignee?->name ?? '—' }}</td>
-                            <td class="px-4 py-3 font-mono text-xs">
-                                {{ $task->due_date?->timezone(\App\Support\AppSettings::get('display_timezone', 'Asia/Karachi'))->format('Y-m-d') ?? '—' }}
-                            </td>
-                            <td class="px-4 py-3">
-                                <x-badge :tone="match($task->status->value) {
-                                    'approved' => 'success',
-                                    'rejected' => 'danger',
-                                    'submitted' => 'warn',
-                                    default => 'accent',
-                                }">{{ $task->status->label() }}</x-badge>
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-        <div class="mt-4">{{ $tasks->links() }}</div>
-    @endif
+    <x-modal
+        :show="$showForm"
+        :title="$editingId ? 'Edit task' : 'New task'"
+        subtitle="Recurring work generates its first instance immediately."
+        close="cancel"
+        size="lg"
+    >
+        <form id="task-form" wire:submit="save" class="grid gap-4 sm:grid-cols-2">
+            <x-select
+                label="Project"
+                wire:model="project_id"
+                placeholder="Select…"
+                :error="$errors->first('project_id')"
+                class="sm:col-span-2"
+                required
+            >
+                @foreach ($projects as $project)
+                    <option value="{{ $project->id }}">{{ $project->domain }}</option>
+                @endforeach
+            </x-select>
+
+            <x-input label="Title" wire:model="title" :error="$errors->first('title')" class="sm:col-span-2" required />
+
+            <x-textarea label="Description" wire:model="description" rows="3" :error="$errors->first('description')" class="sm:col-span-2" />
+
+            <x-select label="Type" wire:model="type" :error="$errors->first('type')">
+                @foreach ($typeOptions as $value => $label)
+                    @if ($value !== 'setup')
+                        <option value="{{ $value }}">{{ $label }}</option>
+                    @endif
+                @endforeach
+            </x-select>
+
+            <x-select label="Recurrence" wire:model="recurrence_frequency" placeholder="None" :error="$errors->first('recurrence_frequency')">
+                @foreach ($frequencyOptions as $value => $label)
+                    <option value="{{ $value }}">{{ $label }}</option>
+                @endforeach
+            </x-select>
+
+            <x-select label="Assignee" wire:model="assigned_to" placeholder="Unassigned" :error="$errors->first('assigned_to')">
+                @foreach ($users as $user)
+                    <option value="{{ $user->id }}">{{ $user->name }}</option>
+                @endforeach
+            </x-select>
+
+            <x-input label="Due date" type="date" wire:model="due_date" :error="$errors->first('due_date')" />
+
+            <x-input
+                label="Time spent"
+                type="number"
+                min="0"
+                wire:model="time_spent_minutes"
+                :error="$errors->first('time_spent_minutes')"
+                suffix="min"
+            />
+        </form>
+
+        <x-slot:footer>
+            <x-button variant="ghost" wire:click="cancel">Cancel</x-button>
+            <x-button type="submit" form="task-form" target="save">Save task</x-button>
+        </x-slot:footer>
+    </x-modal>
 </div>

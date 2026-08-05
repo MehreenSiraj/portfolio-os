@@ -70,7 +70,7 @@ class Show extends Component
 
         $this->task->update($data);
         $this->task->refresh();
-        session()->flash('status', 'Task updated.');
+        $this->dispatch('toast', message: 'Task updated.', tone: 'success');
     }
 
     public function start(TaskWorkflowService $workflow): void
@@ -106,7 +106,7 @@ class Show extends Component
             $workflow->reject($this->task, Auth::user(), $this->rejection_reason);
             $this->task->refresh()->load(['project', 'assignee', 'comments.user', 'media', 'template']);
             $this->showReject = false;
-            session()->flash('status', 'Task rejected.');
+            $this->dispatch('toast', message: 'Task rejected.', tone: 'success');
         } catch (ValidationException $e) {
             foreach ($e->errors() as $key => $messages) {
                 foreach ($messages as $message) {
@@ -132,7 +132,7 @@ class Show extends Component
 
         $this->commentBody = '';
         $this->task->load('comments.user');
-        session()->flash('status', 'Comment added.');
+        $this->dispatch('toast', message: 'Comment added.', tone: 'success');
     }
 
     public function uploadEvidence(): void
@@ -158,7 +158,7 @@ class Show extends Component
 
         $this->evidence = null;
         $this->task->load('media');
-        session()->flash('status', 'Evidence uploaded.');
+        $this->dispatch('toast', message: 'Evidence uploaded.', tone: 'success');
     }
 
     public function deleteEvidence(int $mediaId): void
@@ -168,7 +168,7 @@ class Show extends Component
         Storage::disk($media->disk)->delete($media->path);
         $media->delete();
         $this->task->load('media');
-        session()->flash('status', 'Evidence removed.');
+        $this->dispatch('toast', message: 'Evidence removed.', tone: 'success');
     }
 
     protected function runWorkflow(callable $fn): void
@@ -176,7 +176,7 @@ class Show extends Component
         try {
             $fn();
             $this->task->refresh()->load(['project', 'assignee', 'comments.user', 'media', 'template']);
-            session()->flash('status', 'Task status updated.');
+            $this->dispatch('toast', message: 'Task status updated.', tone: 'success');
         } catch (ValidationException $e) {
             foreach ($e->errors() as $key => $messages) {
                 foreach ($messages as $message) {

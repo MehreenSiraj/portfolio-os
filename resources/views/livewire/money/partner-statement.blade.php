@@ -1,42 +1,87 @@
-<div>
-    <div class="mb-8 flex flex-wrap items-end justify-between gap-4">
-        <div>
-            <a href="{{ route('money.partners') }}" wire:navigate class="text-sm text-muted hover:text-ink">← Partners</a>
-            <h1 class="mt-2 text-2xl font-semibold tracking-tight text-ink">{{ $partner->name }}</h1>
-            <p class="mt-1 text-sm text-muted">{{ $partner->email }} · Running balance
-                <span class="font-mono font-semibold text-ink">{{ number_format($balance / 100, 2) }} PKR</span>
-            </p>
-        </div>
-        <x-button type="button" variant="ghost" wire:click="exportCsv">Export CSV</x-button>
+<div class="space-y-6">
+    <x-page-header
+        title="{{ $partner->name }}"
+        subtitle="Every capital contribution, withdrawal and distribution credit, newest first, with the balance after each entry."
+        :breadcrumbs="[
+            ['label' => 'Money'],
+            ['label' => 'Partners', 'href' => route('money.partners')],
+            ['label' => $partner->name],
+        ]"
+        back="{{ route('money.partners') }}"
+    >
+        <x-slot:meta>
+            <span class="font-mono text-xs text-muted">{{ $partner->email }}</span>
+        </x-slot:meta>
+
+        <x-slot:actions>
+            <x-button variant="secondary" icon="download" wire:click="exportCsv">Export CSV</x-button>
+        </x-slot:actions>
+    </x-page-header>
+
+    <div class="grid gap-3 sm:grid-cols-2">
+        <x-stat
+            label="Running balance"
+            :tone="$balance < 0 ? 'danger' : 'success'"
+            icon="partners"
+            hint="owed to the partner after the latest entry"
+        >
+            <x-money :paisa="$balance" size="lg" currency="PKR" signed />
+        </x-stat>
+
+        <x-stat
+            label="Ledger entries"
+            :value="number_format($entries->total())"
+            tone="neutral"
+            icon="history"
+            hint="capital, withdrawals and distribution credits"
+        />
     </div>
 
-    <div class="overflow-x-auto rounded-xl border border-line">
-        <table class="min-w-full text-left text-sm">
-            <thead class="border-b border-line bg-canvas/60 font-mono text-[11px] tracking-wide text-muted uppercase">
-                <tr>
-                    <th class="px-4 py-3">Date</th>
-                    <th class="px-4 py-3">Type</th>
-                    <th class="px-4 py-3">Description</th>
-                    <th class="px-4 py-3 text-right">Amount</th>
-                    <th class="px-4 py-3 text-right">Balance</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-line">
-                @forelse ($entries as $e)
-                    <tr>
-                        <td class="px-4 py-3 font-mono text-xs">{{ $e->entry_date->format('Y-m-d') }}</td>
-                        <td class="px-4 py-3">{{ $e->type->label() }}</td>
-                        <td class="px-4 py-3">{{ $e->description }}</td>
-                        <td class="px-4 py-3 text-right font-mono text-xs {{ $e->amount_paisa < 0 ? 'text-danger' : 'text-success' }}">
-                            {{ number_format($e->amount_paisa / 100, 2) }}
-                        </td>
-                        <td class="px-4 py-3 text-right font-mono text-xs">{{ number_format($e->balance_after_paisa / 100, 2) }}</td>
-                    </tr>
-                @empty
-                    <tr><td colspan="5" class="px-4 py-10 text-center text-muted">No ledger entries.</td></tr>
-                @endforelse
-            </tbody>
-        </table>
+    <div wire:loading.delay.long.flex wire:target="previousPage,nextPage,gotoPage" class="hidden">
+        <x-skeleton variant="table" class="w-full" :rows="6" :cols="5" />
     </div>
-    <div class="mt-4">{{ $entries->links() }}</div>
+
+    @if ($entries->isEmpty())
+        <x-empty-state
+            icon="partners"
+            title="No ledger entries yet"
+            description="This partner's ledger starts with their first capital contribution or an approved distribution run. Record capital from the partners screen."
+        >
+            <x-button variant="secondary" iconRight="arrow-right" href="{{ route('money.partners') }}" wire:navigate>
+                Back to partners
+            </x-button>
+        </x-empty-state>
+    @else
+        <div wire:loading.class="opacity-60" wire:target="previousPage,nextPage,gotoPage" class="transition-opacity">
+            <x-table
+                :headers="[
+                    ['label' => 'Date', 'width' => 'w-28'],
+                    'Type',
+                    'Description',
+                    ['label' => 'Amount', 'align' => 'right'],
+                    ['label' => 'Balance', 'align' => 'right'],
+                ]"
+            >
+                @foreach ($entries as $e)
+                    <x-table.row>
+                        <x-table.cell mono nowrap>{{ $e->entry_date->format('Y-m-d') }}</x-table.cell>
+                        <x-table.cell>
+                            <x-badge size="sm" :tone="$e->amount_paisa < 0 ? 'warn' : 'accent'">
+                                {{ $e->type->label() }}
+                            </x-badge>
+                        </x-table.cell>
+                        <x-table.cell>{{ $e->description }}</x-table.cell>
+                        <x-table.cell numeric>
+                            <x-money :paisa="$e->amount_paisa" signed />
+                        </x-table.cell>
+                        <x-table.cell numeric>
+                            <x-money :paisa="$e->balance_after_paisa" :tone="false" />
+                        </x-table.cell>
+                    </x-table.row>
+                @endforeach
+            </x-table>
+        </div>
+
+        {{ $entries->links() }}
+    @endif
 </div>

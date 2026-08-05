@@ -49,10 +49,10 @@ class PartnersIndex extends Component
         $paisa = Money::pkrToPaisa($this->amount);
         if ($this->entry_type === 'capital_in') {
             $ledger->recordCapitalIn((int) $this->user_id, $paisa, Auth::user(), $this->notes ?: null);
-            session()->flash('status', 'Capital contribution recorded.');
+            $this->dispatch('toast', message: 'Capital contribution recorded.', tone: 'success');
         } else {
             $ledger->recordWithdrawal((int) $this->user_id, $paisa, Auth::user(), $this->notes ?: null);
-            session()->flash('status', 'Withdrawal recorded.');
+            $this->dispatch('toast', message: 'Withdrawal recorded.', tone: 'success');
         }
 
         $this->showCapital = false;

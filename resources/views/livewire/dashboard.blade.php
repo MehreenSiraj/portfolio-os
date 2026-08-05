@@ -1,227 +1,351 @@
-<div>
-    <div class="mb-10 max-w-3xl">
-        <p class="font-mono text-[11px] tracking-[0.16em] text-muted uppercase">Overview</p>
-        <h1 class="mt-2 text-3xl font-semibold tracking-tight text-ink">Home</h1>
-        <p class="mt-2 text-muted">
-            Portfolio pulse, today’s work, and approvals. Welcome, {{ auth()->user()->name }}.
-        </p>
-    </div>
+@php
+    $tz = \App\Support\AppSettings::get('display_timezone', 'Asia/Karachi');
+    $today = now($tz);
+    $canSeeProfit = (bool) auth()->user()?->hasPermission('pnl.view');
+    $monthProfit = $monthRevenuePlaceholder - $monthCostPlaceholder;
+    $tasksDueCount = $myTasksDueToday->count();
+    $urgentExpiring = $expiring->filter(fn ($credential) => ($credential->daysUntilExpiry() ?? 99) <= 7)->count();
+    $hasAnything = $canSeeApprovals || $canSeeTasks || $canViewProjects || $canViewCredentials || $canSeePeople;
+@endphp
 
-    @if (\App\Support\AiAvailability::enabled())
-        <div class="mb-8">
-            <livewire:ai.ask :compact="true" />
+<div class="space-y-6">
+    <x-page-header
+        title="Home"
+        :subtitle="'What needs you today — '.$today->format('l j F').' · '.$tz"
+        :breadcrumbs="[['label' => 'Overview']]"
+    >
+        <x-slot:actions>
+            @if ($canSeeApprovals && $awaitingCount > 0)
+                <x-button icon="approvals" href="{{ route('approvals.queue') }}" wire:navigate>
+                    Review {{ $awaitingCount }} {{ \Illuminate\Support\Str::plural('item', $awaitingCount) }}
+                </x-button>
+            @elseif ($canSeeTasks)
+                <x-button variant="secondary" icon="tasks" href="{{ route('tasks.index', ['mineOnly' => '1']) }}" wire:navigate>
+                    My tasks
+                </x-button>
+            @endif
+        </x-slot:actions>
+    </x-page-header>
+
+    @if (! $hasAnything)
+        <x-empty-state
+            icon="inbox"
+            title="Your account has no sections yet"
+            description="Roles decide what appears here. Ask an admin to assign you a role and this page will fill up with your work, approvals and figures."
+        />
+    @endif
+
+    {{-- The four numbers that decide what you do next. --}}
+    @if ($canSeeApprovals || $canSeeTasks || $canViewCredentials || $canViewProjects)
+        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            @if ($canSeeApprovals)
+                <x-stat
+                    label="Awaiting my approval"
+                    :value="$awaitingCount"
+                    :tone="$awaitingCount > 0 ? 'warn' : 'neutral'"
+                    icon="approvals"
+                    :hint="$awaitingCount > 0 ? 'in the queue' : 'queue is clear'"
+                    :href="route('approvals.queue')"
+                />
+            @endif
+
+            @if ($canSeeTasks)
+                <x-stat
+                    label="My tasks due today"
+                    :value="$tasksDueCount"
+                    :tone="$tasksDueCount > 0 ? 'accent' : 'neutral'"
+                    icon="tasks"
+                    :hint="$tasksDueCount > 0 ? 'due before midnight' : 'nothing due'"
+                    :href="route('tasks.index', ['mineOnly' => '1'])"
+                />
+            @endif
+
+            @if ($canViewCredentials)
+                <x-stat
+                    label="Expiring credentials"
+                    :value="$expiring->count()"
+                    :tone="$urgentExpiring > 0 ? 'danger' : ($expiring->count() > 0 ? 'warn' : 'neutral')"
+                    icon="credentials"
+                    :hint="$urgentExpiring > 0 ? $urgentExpiring.' inside 7 days' : 'within '.implode('/', $thresholds).' days'"
+                />
+            @endif
+
+            @if ($canViewProjects)
+                @if ($canSeeProfit)
+                    <x-stat
+                        label="Profit this month"
+                        :value="number_format($monthProfit / 100, 0)"
+                        :tone="$monthProfit >= 0 ? 'success' : 'danger'"
+                        icon="pnl"
+                        :hint="'PKR · '.number_format($monthRevenuePlaceholder / 100, 0).' in, '.number_format($monthCostPlaceholder / 100, 0).' out'"
+                        :href="route('money.pnl')"
+                    />
+                @else
+                    <x-stat
+                        label="Revenue this month"
+                        :value="number_format($monthRevenuePlaceholder / 100, 0)"
+                        tone="accent"
+                        icon="revenue"
+                        hint="PKR · across your sites"
+                    />
+                @endif
+            @endif
         </div>
     @endif
 
     @if ($canSeeApprovals || $canSeeTasks)
-        <div class="mb-8 grid gap-4 lg:grid-cols-2">
+        <div class="grid gap-4 lg:grid-cols-2">
             @if ($canSeeApprovals)
-                <div class="rounded-xl border border-line bg-surface p-5">
-                    <div class="mb-3 flex items-center justify-between">
-                        <h2 class="text-base font-semibold">Awaiting my approval</h2>
-                        <a href="{{ route('approvals.queue') }}" wire:navigate class="text-sm font-medium text-accent hover:underline">
-                            Queue ({{ $awaitingCount }})
-                        </a>
-                    </div>
+                <x-card title="Awaiting my approval" icon="approvals" padding="none" flush>
+                    <x-slot:actions>
+                        <x-button size="sm" variant="ghost" iconRight="arrow-right" href="{{ route('approvals.queue') }}" wire:navigate>
+                            Open queue
+                        </x-button>
+                    </x-slot:actions>
+
                     @if ($awaitingMyApproval->isEmpty())
-                        <p class="text-sm text-muted">Nothing waiting on you.</p>
+                        <div class="px-6 py-10 text-center">
+                            <p class="text-sm font-medium text-ink">Queue is clear</p>
+                            <p class="mt-1 text-xs text-muted">Submitted tasks, drafts and links land here for your sign-off.</p>
+                        </div>
                     @else
                         <ul class="divide-y divide-line">
                             @foreach ($awaitingMyApproval as $row)
-                                <li class="flex items-center justify-between gap-3 py-2.5 text-sm">
-                                    <div class="min-w-0">
-                                        <p class="truncate font-medium">{{ $row['label'] }}</p>
-                                        <p class="text-xs text-muted">{{ $row['type'] }} · {{ $row['project'] }}</p>
-                                    </div>
-                                    <a href="{{ $row['url'] }}" wire:navigate class="shrink-0 text-accent hover:underline">Review</a>
+                                <li>
+                                    <a
+                                        href="{{ $row['url'] }}"
+                                        wire:navigate
+                                        class="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-subtle sm:px-6"
+                                    >
+                                        <x-badge tone="warn" size="sm">{{ $row['type'] }}</x-badge>
+                                        <span class="min-w-0 flex-1">
+                                            <span class="block truncate text-sm font-medium text-ink">{{ $row['label'] }}</span>
+                                            <span class="block truncate font-mono text-[10px] text-faint">{{ $row['project'] }}</span>
+                                        </span>
+                                        <x-icon name="chevron-right" class="size-4 shrink-0 text-faint" />
+                                    </a>
                                 </li>
                             @endforeach
                         </ul>
                     @endif
-                </div>
+                </x-card>
             @endif
 
             @if ($canSeeTasks)
-                <div class="rounded-xl border border-line bg-surface p-5">
-                    <div class="mb-3 flex items-center justify-between">
-                        <h2 class="text-base font-semibold">My tasks due today</h2>
-                        <a href="{{ route('tasks.index', ['mineOnly' => '1']) }}" wire:navigate class="text-sm font-medium text-accent hover:underline">All mine</a>
-                    </div>
+                <x-card title="My tasks due today" icon="tasks" padding="none" flush>
+                    <x-slot:actions>
+                        <x-button size="sm" variant="ghost" iconRight="arrow-right" href="{{ route('tasks.index', ['mineOnly' => '1']) }}" wire:navigate>
+                            All mine
+                        </x-button>
+                    </x-slot:actions>
+
                     @if ($myTasksDueToday->isEmpty())
-                        <p class="text-sm text-muted">No tasks due today.</p>
+                        <div class="px-6 py-10 text-center">
+                            <p class="text-sm font-medium text-ink">Nothing due today</p>
+                            <p class="mt-1 text-xs text-muted">Tasks assigned to you with today’s due date show up here.</p>
+                        </div>
                     @else
                         <ul class="divide-y divide-line">
                             @foreach ($myTasksDueToday as $task)
-                                <li class="flex items-center justify-between gap-3 py-2.5 text-sm">
-                                    <div class="min-w-0">
-                                        <a href="{{ route('tasks.show', $task) }}" wire:navigate class="truncate font-medium hover:text-accent">{{ $task->title }}</a>
-                                        <p class="text-xs text-muted">{{ $task->project?->domain }}</p>
-                                    </div>
-                                    <x-badge tone="warn">{{ $task->status->label() }}</x-badge>
+                                <li>
+                                    <a
+                                        href="{{ route('tasks.show', $task) }}"
+                                        wire:navigate
+                                        class="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-subtle sm:px-6"
+                                    >
+                                        <span class="min-w-0 flex-1">
+                                            <span class="block truncate text-sm font-medium text-ink">{{ $task->title }}</span>
+                                            <span class="block truncate font-mono text-[10px] text-faint">{{ $task->project?->domain }}</span>
+                                        </span>
+                                        <x-badge :tone="match ($task->status->value) {
+                                            'approved' => 'success',
+                                            'rejected' => 'danger',
+                                            'submitted' => 'warn',
+                                            default => 'neutral',
+                                        }" size="sm">{{ $task->status->label() }}</x-badge>
+                                    </a>
                                 </li>
                             @endforeach
                         </ul>
                     @endif
-                </div>
+                </x-card>
             @endif
         </div>
     @endif
 
     @if ($canSeeTeamAttendance)
-        <div class="mb-8 rounded-xl border border-line bg-surface p-5">
-            <div class="mb-3 flex items-center justify-between">
-                <h2 class="text-base font-semibold">Team attendance today</h2>
+        <x-card title="Team attendance today" icon="attendance" :subtitle="$today->format('D j M')">
+            <x-slot:actions>
                 @if ($canSeePeople)
-                    <a href="{{ route('people.attendance') }}" wire:navigate class="text-sm font-medium text-accent hover:underline">Sheet</a>
+                    <x-button size="sm" variant="ghost" iconRight="arrow-right" href="{{ route('people.attendance') }}" wire:navigate>
+                        Day sheet
+                    </x-button>
                 @endif
-            </div>
-            <ul class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            </x-slot:actions>
+
+            <ul class="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                 @foreach ($teamAttendanceToday as $row)
-                    <li class="flex items-center justify-between rounded-lg border border-line/70 px-3 py-2 text-sm">
-                        <span class="font-medium">{{ $row['name'] }}</span>
+                    <li class="flex items-center gap-2.5 rounded-lg border border-line px-2.5 py-2">
+                        <x-avatar :name="$row['name']" size="sm" />
+                        <span class="min-w-0 flex-1 truncate text-sm text-ink-soft">{{ $row['name'] }}</span>
                         @if ($row['status'] === 'present')
-                            <x-badge tone="success">{{ $row['is_late'] ? 'Late' : 'Present' }}</x-badge>
+                            <x-badge :tone="$row['is_late'] ? 'warn' : 'success'" dot size="sm">{{ $row['is_late'] ? 'Late' : 'Present' }}</x-badge>
                         @elseif ($row['status'] === 'leave')
-                            <x-badge tone="warn">Leave</x-badge>
+                            <x-badge tone="warn" dot size="sm">Leave</x-badge>
                         @elseif ($row['status'] === 'holiday')
-                            <x-badge tone="accent">Holiday</x-badge>
+                            <x-badge tone="info" dot size="sm">Holiday</x-badge>
                         @else
-                            <x-badge tone="danger">{{ $row['status_label'] }}</x-badge>
+                            <x-badge tone="neutral" dot size="sm">{{ $row['status_label'] }}</x-badge>
                         @endif
                     </li>
                 @endforeach
             </ul>
-        </div>
+        </x-card>
     @elseif ($canSeePeople)
-        <div class="mb-8 flex flex-wrap gap-3 text-sm">
-            <a href="{{ route('people.work-logs') }}" wire:navigate class="rounded-lg border border-line bg-surface px-3 py-2 text-accent hover:underline">Work log</a>
-            <a href="{{ route('people.scorecard') }}" wire:navigate class="rounded-lg border border-line bg-surface px-3 py-2 text-accent hover:underline">My scorecard</a>
-            <a href="{{ route('people.attendance') }}" wire:navigate class="rounded-lg border border-line bg-surface px-3 py-2 text-accent hover:underline">Attendance</a>
-        </div>
+        <x-card title="My people screens" icon="people" padding="sm">
+            <div class="flex flex-wrap gap-2">
+                <x-button size="sm" variant="secondary" icon="worklogs" href="{{ route('people.work-logs') }}" wire:navigate>Work log</x-button>
+                <x-button size="sm" variant="secondary" icon="scorecard" href="{{ route('people.scorecard') }}" wire:navigate>My scorecard</x-button>
+                <x-button size="sm" variant="secondary" icon="attendance" href="{{ route('people.attendance') }}" wire:navigate>Attendance</x-button>
+            </div>
+        </x-card>
     @endif
 
     @if ($canViewProjects)
-        <div class="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <div class="rounded-xl border border-line bg-surface px-5 py-4">
-                <p class="font-mono text-[11px] tracking-wide text-muted uppercase">Projects</p>
-                <p class="mt-2 text-3xl font-semibold tracking-tight">{{ $totalProjects }}</p>
-            </div>
-            <div class="rounded-xl border border-line bg-surface px-5 py-4">
-                <p class="font-mono text-[11px] tracking-wide text-muted uppercase">Open tasks</p>
-                <p class="mt-2 text-3xl font-semibold tracking-tight">{{ $openTasksPortfolio }}</p>
-            </div>
-            <div class="rounded-xl border border-line bg-surface px-5 py-4">
-                <p class="font-mono text-[11px] tracking-wide text-muted uppercase">Month revenue</p>
-                <p class="mt-2 text-3xl font-semibold tracking-tight">{{ number_format($monthRevenuePlaceholder / 100, 0) }}</p>
-                <p class="mt-1 text-xs text-muted">PKR · this month</p>
-            </div>
-            <div class="rounded-xl border border-line bg-surface px-5 py-4">
-                <p class="font-mono text-[11px] tracking-wide text-muted uppercase">Expiring vault</p>
-                <p class="mt-2 text-3xl font-semibold tracking-tight">{{ $expiring->count() }}</p>
-                <p class="mt-1 text-xs text-muted">Within {{ implode('/', $thresholds) }} days</p>
-            </div>
-        </div>
+        <div class="grid gap-4 lg:grid-cols-2">
+            <x-card title="Portfolio mix" icon="projects" :subtitle="$totalProjects.' sites · '.$openTasksPortfolio.' open tasks'">
+                <x-slot:actions>
+                    <x-button size="sm" variant="ghost" iconRight="arrow-right" href="{{ route('projects.index') }}" wire:navigate>
+                        All projects
+                    </x-button>
+                </x-slot:actions>
 
-        <div class="mb-10 grid gap-6 lg:grid-cols-2">
-            <div class="rounded-xl border border-line bg-surface p-5">
-                <div class="mb-4 flex items-center justify-between">
-                    <h2 class="text-base font-semibold">Status mix</h2>
-                    <a href="{{ route('projects.index') }}" wire:navigate class="text-sm font-medium text-accent hover:underline">All projects</a>
-                </div>
-                <ul class="space-y-2">
-                    @foreach ($statusOptions as $value => $label)
-                        <li class="flex items-center justify-between text-sm">
-                            <span class="text-muted">{{ $label }}</span>
-                            <span class="font-medium tabular-nums">{{ $byStatus[$value] ?? 0 }}</span>
-                        </li>
-                    @endforeach
-                </ul>
-            </div>
-
-            <div class="rounded-xl border border-line bg-surface p-5">
-                <div class="mb-4 flex items-center justify-between">
-                    <h2 class="text-base font-semibold">Recent projects</h2>
-                </div>
-                @if ($recentProjects->isEmpty())
-                    <p class="text-sm text-muted">No projects yet.</p>
+                @if ($totalProjects === 0)
+                    <p class="py-6 text-center text-sm text-muted">No sites in your portfolio yet.</p>
                 @else
-                    <ul class="divide-y divide-line">
-                        @foreach ($recentProjects as $project)
-                            <li class="flex items-center justify-between py-2.5 first:pt-0 last:pb-0">
-                                <a href="{{ route('projects.show', $project) }}" wire:navigate class="font-medium text-ink hover:text-accent">
-                                    {{ $project->domain }}
-                                </a>
-                                <div class="flex items-center gap-2">
-                                    <span class="font-mono text-xs text-muted">{{ $project->openTasksCount() }} open</span>
-                                    <x-badge :tone="match($project->status->value) {
+                    <ul class="space-y-3">
+                        @foreach ($statusOptions as $value => $label)
+                            @php $count = (int) ($byStatus[$value] ?? 0); @endphp
+                            <li>
+                                <x-progress
+                                    :value="$count"
+                                    :max="max(1, $totalProjects)"
+                                    :label="$label"
+                                    :caption="$count"
+                                    :tone="match ($value) {
                                         'monetized' => 'success',
                                         'paused', 'sold' => 'warn',
-                                        default => 'accent',
-                                    }">
-                                        {{ $project->status->label() }}
-                                    </x-badge>
-                                </div>
+                                        'live' => 'accent',
+                                        default => 'neutral',
+                                    }"
+                                />
                             </li>
                         @endforeach
                     </ul>
                 @endif
-            </div>
+            </x-card>
+
+            <x-card title="Recently touched" icon="clock" padding="none" flush>
+                @if ($recentProjects->isEmpty())
+                    <div class="px-6 py-10 text-center">
+                        <p class="text-sm font-medium text-ink">No projects yet</p>
+                        <p class="mt-1 text-xs text-muted">Add a site and its setup checklist is generated for you.</p>
+                    </div>
+                @else
+                    <ul class="divide-y divide-line">
+                        @foreach ($recentProjects as $project)
+                            <li>
+                                <a
+                                    href="{{ route('projects.show', $project) }}"
+                                    wire:navigate
+                                    class="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-subtle sm:px-6"
+                                >
+                                    <span class="min-w-0 flex-1 truncate font-mono text-sm text-ink">{{ $project->domain }}</span>
+                                    <span class="shrink-0 font-mono text-[10px] text-faint tabular-nums">{{ $project->openTasksCount() }} open</span>
+                                    <x-badge size="sm" :tone="match ($project->status->value) {
+                                        'monetized' => 'success',
+                                        'paused', 'sold' => 'warn',
+                                        default => 'accent',
+                                    }">{{ $project->status->label() }}</x-badge>
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+            </x-card>
         </div>
-    @else
+    @elseif ($hasAnything)
         <x-empty-state
+            icon="projects"
             title="No portfolio access"
-            description="You do not have projects.view yet. Ask an admin for a role assignment."
+            description="You do not have projects.view yet. Ask an admin for a role assignment and the portfolio panels will appear here."
         />
     @endif
 
     @if ($canViewCredentials)
-        <div class="rounded-xl border border-line bg-surface p-5">
-            <div class="mb-4">
-                <h2 class="text-base font-semibold">Expiring soon</h2>
-                <p class="mt-1 text-sm text-muted">Credentials within {{ implode(', ', $thresholds) }}-day alert windows (including recently expired).</p>
-            </div>
-
+        <x-card
+            title="Expiring soon"
+            icon="credentials"
+            :subtitle="'Credentials inside the '.implode(', ', $thresholds).'-day alert windows, including ones already expired.'"
+            padding="none"
+            flush
+        >
             @if ($expiring->isEmpty())
-                <p class="text-sm text-muted">Nothing expiring in the alert window.</p>
+                <div class="px-6 py-10 text-center">
+                    <p class="text-sm font-medium text-ink">Nothing expiring</p>
+                    <p class="mt-1 text-xs text-muted">Every credential with a date is outside the alert window.</p>
+                </div>
             @else
-                <x-table :headers="['Credential', 'Project', 'Expires', 'Window']">
+                <x-table
+                    flush
+                    :headers="[
+                        'Credential',
+                        'Project',
+                        ['label' => 'Expires', 'align' => 'right'],
+                        ['label' => 'Window', 'align' => 'right'],
+                    ]"
+                >
                     @foreach ($expiring as $credential)
                         @php
                             $days = $credential->daysUntilExpiry();
                             $urgency = $credential->expiryUrgency($thresholds);
                         @endphp
-                        <tr class="hover:bg-canvas/50">
-                            <td class="px-4 py-3">
-                                <p class="font-medium">{{ $credential->label }}</p>
-                                <p class="font-mono text-xs text-muted">{{ $credential->type->label() }}</p>
-                            </td>
-                            <td class="px-4 py-3">
+                        <x-table.row>
+                            <x-table.cell>
+                                <p class="font-medium text-ink">{{ $credential->label }}</p>
+                                <p class="font-mono text-[10px] text-faint">{{ $credential->type->label() }}</p>
+                            </x-table.cell>
+                            <x-table.cell>
                                 @if ($credential->project)
-                                    <a href="{{ route('projects.show', $credential->project) }}" wire:navigate class="text-accent hover:underline">
+                                    <a href="{{ route('projects.show', $credential->project) }}" wire:navigate class="font-mono text-xs text-accent hover:underline">
                                         {{ $credential->project->domain }}
                                     </a>
                                 @else
-                                    —
+                                    <span class="text-faint">—</span>
                                 @endif
-                            </td>
-                            <td class="px-4 py-3 font-mono text-xs">
-                                {{ $credential->expires_on?->timezone(\App\Support\AppSettings::get('display_timezone', 'Asia/Karachi'))->format('Y-m-d') }}
-                            </td>
-                            <td class="px-4 py-3">
+                            </x-table.cell>
+                            <x-table.cell numeric muted>
+                                {{ $credential->expires_on?->timezone($tz)->format('Y-m-d') }}
+                            </x-table.cell>
+                            <x-table.cell align="right">
                                 @if ($days !== null && $days < 0)
-                                    <x-badge tone="danger">Expired {{ abs($days) }}d</x-badge>
+                                    <x-badge tone="danger" size="sm">Expired {{ abs($days) }}d</x-badge>
                                 @elseif ($urgency === '7' || ($days !== null && $days <= 7))
-                                    <x-badge tone="danger">{{ $days }}d</x-badge>
+                                    <x-badge tone="danger" size="sm">{{ $days }}d</x-badge>
                                 @elseif ($urgency === '14' || ($days !== null && $days <= 14))
-                                    <x-badge tone="warn">{{ $days }}d</x-badge>
+                                    <x-badge tone="warn" size="sm">{{ $days }}d</x-badge>
                                 @else
-                                    <x-badge tone="accent">{{ $days }}d</x-badge>
+                                    <x-badge tone="neutral" size="sm">{{ $days }}d</x-badge>
                                 @endif
-                            </td>
-                        </tr>
+                            </x-table.cell>
+                        </x-table.row>
                     @endforeach
                 </x-table>
             @endif
-        </div>
+        </x-card>
+    @endif
+
+    @if (\App\Support\AiAvailability::enabled())
+        <livewire:ai.ask :compact="true" />
     @endif
 </div>

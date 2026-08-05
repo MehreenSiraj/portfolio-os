@@ -123,7 +123,7 @@ class WorkLogsIndex extends Component
         );
 
         $this->userId = $ownerId;
-        session()->flash('status', 'Work log saved.');
+        $this->dispatch('toast', message: 'Work log saved.', tone: 'success');
     }
 
     /**

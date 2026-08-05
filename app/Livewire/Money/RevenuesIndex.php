@@ -65,6 +65,10 @@ class RevenuesIndex extends Component
         $this->period_month = $this->monthFilter;
         $service = app(RevenueService::class);
         $this->fx_rate = Money::fxRateFromE6($service->defaultFxRateE6());
+
+        if (request()->boolean('new') && FinancePolicy::manageRevenue(Auth::user())) {
+            $this->create();
+        }
     }
 
     public function updatingSearch(): void
@@ -117,10 +121,10 @@ class RevenuesIndex extends Component
 
         if ($this->editingId) {
             $revenues->update(Revenue::query()->findOrFail($this->editingId), $payload, Auth::user());
-            session()->flash('status', 'Revenue updated (FX locked on record).');
+            $this->dispatch('toast', message: 'Revenue updated (FX locked on record).', tone: 'success');
         } else {
             $revenues->create($payload, Auth::user());
-            session()->flash('status', 'Revenue recorded.');
+            $this->dispatch('toast', message: 'Revenue recorded.', tone: 'success');
         }
 
         $this->showForm = false;
@@ -131,7 +135,7 @@ class RevenuesIndex extends Component
     {
         abort_unless(FinancePolicy::manageRevenue(Auth::user()), 403);
         $revenues->softDelete(Revenue::query()->findOrFail($id), Auth::user());
-        session()->flash('status', 'Revenue soft-deleted.');
+        $this->dispatch('toast', message: 'Revenue soft-deleted.', tone: 'success');
     }
 
     public function import(RevenueService $revenues): void
@@ -148,9 +152,10 @@ class RevenuesIndex extends Component
             Auth::user(),
         );
 
-        session()->flash(
-            'status',
-            "Import complete: {$result['imported']} imported, {$result['skipped']} skipped."
+        $this->dispatch(
+            'toast',
+            message: "Import complete: {$result['imported']} imported, {$result['skipped']} skipped.",
+            tone: 'success',
         );
         $this->showImport = false;
         $this->importFile = null;

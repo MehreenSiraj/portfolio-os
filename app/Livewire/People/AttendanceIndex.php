@@ -67,7 +67,7 @@ class AttendanceIndex extends Component
             $validated['markNotes'] ?: null,
         );
 
-        session()->flash('status', 'Attendance marked for '.$validated['markDate'].'.');
+        $this->dispatch('toast', message: 'Attendance marked for '.$validated['markDate'].'.', tone: 'success');
     }
 
     public function clearMark(string $date, AttendanceService $attendance, PeopleVisibilityService $visibility): void
@@ -79,7 +79,7 @@ class AttendanceIndex extends Component
         abort_unless($visibility->canViewSubject($actor, $subject), 403);
 
         $attendance->clearOverride($subject, $date, $actor);
-        session()->flash('status', 'Override cleared for '.$date.'.');
+        $this->dispatch('toast', message: 'Override cleared for '.$date.'.', tone: 'success');
     }
 
     public function render(AttendanceService $attendance, PeopleVisibilityService $visibility)

@@ -1,160 +1,208 @@
-<div class="mx-auto max-w-3xl space-y-6">
-    <div>
-        <a href="{{ route('tasks.index') }}" wire:navigate class="text-sm font-medium text-muted hover:text-ink">← Tasks</a>
-        <div class="mt-3 flex flex-wrap items-start justify-between gap-3">
-            <div>
-                <p class="font-mono text-[11px] tracking-[0.16em] text-muted uppercase">{{ $task->project?->domain }}</p>
-                <h1 class="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">{{ $task->title }}</h1>
-                <div class="mt-2 flex flex-wrap gap-2">
-                    <x-badge :tone="match($task->status->value) {
-                        'approved' => 'success',
-                        'rejected' => 'danger',
-                        'submitted' => 'warn',
-                        default => 'accent',
-                    }">{{ $task->status->label() }}</x-badge>
-                    <x-badge tone="accent">{{ $task->type->label() }}</x-badge>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    @if ($task->description)
-        <div class="rounded-xl border border-line bg-surface p-5">
-            <h2 class="text-sm font-semibold">Description</h2>
-            <p class="mt-2 whitespace-pre-wrap text-sm text-muted">{{ $task->description }}</p>
-        </div>
-    @endif
+<div class="space-y-6">
+    <x-page-header
+        :title="$task->title"
+        :breadcrumbs="[
+            ['label' => 'Work'],
+            ['label' => 'Tasks', 'href' => route('tasks.index')],
+            ['label' => $task->title],
+        ]"
+        back="{{ route('tasks.index') }}"
+    >
+        <x-slot:meta>
+            <x-badge :tone="match($task->status->value) {
+                'approved' => 'success',
+                'rejected' => 'danger',
+                'submitted' => 'warn',
+                default => 'accent',
+            }" dot>{{ $task->status->label() }}</x-badge>
+            <x-badge tone="neutral">{{ $task->type->label() }}</x-badge>
+            @if ($task->project)
+                <span class="font-mono text-xs text-muted">{{ $task->project->domain }}</span>
+            @endif
+        </x-slot:meta>
+    </x-page-header>
 
     @if ($task->rejection_reason)
-        <div class="rounded-xl border border-danger/20 bg-danger-soft px-4 py-3 text-sm text-danger">
-            <p class="font-medium">Rejected</p>
-            <p class="mt-1">{{ $task->rejection_reason }}</p>
+        <div class="rounded-xl border border-danger-line bg-danger-soft px-4 py-3">
+            <p class="flex items-center gap-1.5 text-sm font-semibold text-danger">
+                <x-icon name="alert" class="size-4" />
+                Rejected
+            </p>
+            <p class="mt-1 text-sm text-danger">{{ $task->rejection_reason }}</p>
         </div>
     @endif
 
-    @if ($canUpdate)
-        <div class="rounded-xl border border-line bg-surface p-5">
-            <h2 class="text-sm font-semibold">Details</h2>
-            <form wire:submit="saveMeta" class="mt-4 grid gap-4 sm:grid-cols-2">
-                <x-input label="Time spent (min)" type="number" min="0" wire:model="time_spent_minutes" />
-                <x-input label="Due date" type="date" wire:model="due_date" />
-                @if ($canAssign)
-                    <div class="space-y-1.5 sm:col-span-2">
-                        <label class="block text-sm font-medium">Assignee</label>
-                        <select wire:model="assigned_to" class="block w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm">
-                            <option value="">Unassigned</option>
-                            @foreach ($users as $user)
-                                <option value="{{ $user->id }}">{{ $user->name }}</option>
+    <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <div class="space-y-6">
+            @if ($task->description)
+                <x-card title="Description">
+                    <p class="text-sm whitespace-pre-wrap text-ink-soft">{{ $task->description }}</p>
+                </x-card>
+            @endif
+
+            @if ($canUpdate)
+                <x-card title="Evidence" subtitle="Attach screenshots, docs, or other proof for this task." icon="upload">
+                    <form wire:submit="uploadEvidence" class="space-y-3">
+                        <x-file-input
+                            wire:model="evidence"
+                            :filename="$evidence?->getClientOriginalName()"
+                            :error="$errors->first('evidence')"
+                            hint="Max 10 MB"
+                        />
+                        <div class="flex justify-end">
+                            <x-button type="submit" size="sm" icon="upload" target="uploadEvidence">Upload</x-button>
+                        </div>
+                    </form>
+
+                    @if ($task->media->isNotEmpty())
+                        <ul class="mt-4 divide-y divide-line border-t border-line">
+                            @foreach ($task->media as $file)
+                                <li class="flex items-center justify-between gap-3 py-2.5" wire:key="media-{{ $file->id }}">
+                                    <span class="min-w-0 flex-1 truncate text-sm font-medium text-ink">{{ $file->original_name }}</span>
+                                    <span class="font-mono text-[11px] text-faint tabular-nums">{{ number_format($file->size / 1024, 0) }} KB</span>
+                                    <x-tooltip text="Remove file">
+                                        <x-button
+                                            size="sm"
+                                            variant="danger-ghost"
+                                            square
+                                            icon="trash"
+                                            wire:click="deleteEvidence({{ $file->id }})"
+                                            wire:confirm="Remove this evidence file?"
+                                            aria-label="Remove {{ $file->original_name }}"
+                                        />
+                                    </x-tooltip>
+                                </li>
                             @endforeach
-                        </select>
-                    </div>
+                        </ul>
+                    @else
+                        <p class="mt-4 border-t border-line pt-4 text-sm text-muted">No evidence attached yet.</p>
+                    @endif
+                </x-card>
+            @elseif ($task->media->isNotEmpty())
+                <x-card title="Evidence" icon="upload">
+                    <ul class="divide-y divide-line">
+                        @foreach ($task->media as $file)
+                            <li class="truncate py-2 text-sm font-medium text-ink">{{ $file->original_name }}</li>
+                        @endforeach
+                    </ul>
+                </x-card>
+            @endif
+
+            <x-card title="Comments" icon="inbox">
+                @if ($task->comments->isNotEmpty())
+                    <ul class="space-y-3">
+                        @foreach ($task->comments as $comment)
+                            <li class="rounded-lg border border-line bg-subtle/50 px-3 py-2.5" wire:key="comment-{{ $comment->id }}">
+                                <p class="flex flex-wrap items-center gap-2 text-sm font-medium text-ink">
+                                    {{ $comment->user?->name }}
+                                    <span class="font-mono text-[11px] font-normal text-faint tabular-nums">
+                                        {{ $comment->created_at?->timezone(\App\Support\AppSettings::get('display_timezone', 'Asia/Karachi'))->format('Y-m-d H:i') }}
+                                    </span>
+                                </p>
+                                <p class="mt-1 text-sm whitespace-pre-wrap text-ink-soft">{{ $comment->body }}</p>
+                            </li>
+                        @endforeach
+                    </ul>
+                @else
+                    <p class="text-sm text-muted">No comments yet — leave the first note for whoever picks this up.</p>
                 @endif
-                <div class="sm:col-span-2">
-                    <x-button type="submit" size="sm">Save details</x-button>
-                </div>
-            </form>
-        </div>
-    @else
-        <div class="rounded-xl border border-line bg-surface p-5 text-sm">
-            <dl class="grid gap-3 sm:grid-cols-3">
-                <div>
-                    <dt class="text-muted">Assignee</dt>
-                    <dd class="font-medium">{{ $task->assignee?->name ?? '—' }}</dd>
-                </div>
-                <div>
-                    <dt class="text-muted">Due</dt>
-                    <dd class="font-medium font-mono text-xs">{{ $task->due_date?->format('Y-m-d') ?? '—' }}</dd>
-                </div>
-                <div>
-                    <dt class="text-muted">Time spent</dt>
-                    <dd class="font-medium">{{ $task->time_spent_minutes }} min</dd>
-                </div>
-            </dl>
-        </div>
-    @endif
 
-    <div class="flex flex-wrap gap-2">
-        @if ($canUpdate && in_array($task->status->value, ['assigned', 'rejected'], true))
-            <x-button wire:click="start">Start</x-button>
-        @endif
-        @if ($canSubmit && in_array($task->status->value, ['assigned', 'in_progress', 'rejected'], true))
-            <x-button wire:click="submit">Submit for approval</x-button>
-        @endif
-        @if ($canApprove && $task->status->value === 'submitted')
-            <x-button wire:click="approve">Approve</x-button>
-            <x-button variant="danger" wire:click="openReject">Reject</x-button>
-        @endif
-    </div>
-
-    @if ($showReject)
-        <div class="rounded-xl border border-danger/20 bg-surface p-5">
-            <h2 class="text-sm font-semibold text-danger">Reject task</h2>
-            <div class="mt-3 space-y-3">
-                <textarea wire:model="rejection_reason" rows="3" class="block w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm" placeholder="Reason required…"></textarea>
-                @error('rejection_reason') <p class="text-xs text-danger">{{ $message }}</p> @enderror
-                <div class="flex gap-2">
-                    <x-button variant="danger" wire:click="reject">Confirm reject</x-button>
-                    <x-button variant="secondary" wire:click="$set('showReject', false)">Cancel</x-button>
-                </div>
-            </div>
+                <form wire:submit="addComment" class="mt-4 space-y-2 border-t border-line pt-4">
+                    <x-textarea
+                        wire:model="commentBody"
+                        rows="2"
+                        placeholder="Add a comment…"
+                        :error="$errors->first('commentBody')"
+                        aria-label="Add a comment"
+                    />
+                    <div class="flex justify-end">
+                        <x-button type="submit" size="sm" target="addComment">Comment</x-button>
+                    </div>
+                </form>
+            </x-card>
         </div>
-    @endif
 
-    @if ($canUpdate)
-        <div class="rounded-xl border border-line bg-surface p-5 sm:p-6">
-            <h2 class="text-sm font-semibold">Evidence</h2>
-            <p class="mt-1 text-xs text-muted">Attach screenshots, docs, or other proof for this task.</p>
-            <form wire:submit="uploadEvidence" class="mt-4 space-y-3">
-                <x-file-input
-                    wire:model="evidence"
-                    :filename="$evidence?->getClientOriginalName()"
-                    :error="$errors->first('evidence')"
-                    hint="Max 10 MB"
-                />
-                <div class="flex items-center justify-end gap-2">
-                    <x-button type="submit" size="sm">Upload</x-button>
-                </div>
-            </form>
-            <ul class="mt-5 divide-y divide-line border-t border-line pt-1">
-                @forelse ($task->media as $file)
-                    <li class="flex items-center justify-between gap-3 py-2.5 text-sm">
-                        <span class="min-w-0 truncate font-medium">{{ $file->original_name }}</span>
-                        <x-button size="sm" variant="ghost" wire:click="deleteEvidence({{ $file->id }})">Remove</x-button>
-                    </li>
-                @empty
-                    <li class="py-4 text-center text-sm text-muted">No evidence yet.</li>
-                @endforelse
-            </ul>
-        </div>
-    @elseif ($task->media->isNotEmpty())
-        <div class="rounded-xl border border-line bg-surface p-5 sm:p-6">
-            <h2 class="text-sm font-semibold">Evidence</h2>
-            <ul class="mt-4 space-y-2 text-sm">
-                @foreach ($task->media as $file)
-                    <li class="truncate font-medium">{{ $file->original_name }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
+        <div class="space-y-6">
+            @php
+                $canStart = $canUpdate && in_array($task->status->value, ['assigned', 'rejected'], true);
+                $canSubmitNow = $canSubmit && in_array($task->status->value, ['assigned', 'in_progress', 'rejected'], true);
+                $canDecide = $canApprove && $task->status->value === 'submitted';
+            @endphp
 
-    <div class="rounded-xl border border-line bg-surface p-5">
-        <h2 class="text-sm font-semibold">Comments</h2>
-        <ul class="mt-4 space-y-3">
-            @forelse ($task->comments as $comment)
-                <li class="rounded-lg bg-canvas/70 px-3 py-2 text-sm">
-                    <p class="font-medium">{{ $comment->user?->name }}
-                        <span class="font-normal text-muted">· {{ $comment->created_at?->timezone(\App\Support\AppSettings::get('display_timezone', 'Asia/Karachi'))->format('Y-m-d H:i') }}</span>
-                    </p>
-                    <p class="mt-1 whitespace-pre-wrap text-muted">{{ $comment->body }}</p>
-                </li>
-            @empty
-                <li class="text-sm text-muted">No comments yet.</li>
-            @endforelse
-        </ul>
-        <form wire:submit="addComment" class="mt-4 space-y-2">
-            <textarea wire:model="commentBody" rows="2" class="block w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm" placeholder="Add a comment…"></textarea>
-            @error('commentBody') <p class="text-xs text-danger">{{ $message }}</p> @enderror
-            <x-button type="submit" size="sm">Comment</x-button>
-        </form>
+            @if ($canStart || $canSubmitNow || $canDecide)
+                <x-card title="Workflow" subtitle="Status moves are logged against this task." icon="approvals">
+                    <div class="flex flex-wrap gap-2">
+                        @if ($canStart)
+                            <x-button size="sm" variant="secondary" wire:click="start">Start</x-button>
+                        @endif
+                        @if ($canSubmitNow)
+                            <x-button size="sm" wire:click="submit">Submit for approval</x-button>
+                        @endif
+                        @if ($canDecide)
+                            <x-button size="sm" icon="check" wire:click="approve">Approve</x-button>
+                            <x-button size="sm" variant="danger-soft" wire:click="openReject">Reject</x-button>
+                        @endif
+                    </div>
+
+                    @if ($showReject)
+                        <div class="mt-4 space-y-3 border-t border-line pt-4">
+                            <x-textarea
+                                label="Rejection reason"
+                                wire:model="rejection_reason"
+                                rows="3"
+                                placeholder="Reason required…"
+                                :error="$errors->first('rejection_reason')"
+                                required
+                            />
+                            <div class="flex flex-wrap gap-2">
+                                <x-button size="sm" variant="danger" wire:click="reject">Confirm reject</x-button>
+                                <x-button size="sm" variant="ghost" wire:click="$set('showReject', false)">Cancel</x-button>
+                            </div>
+                        </div>
+                    @endif
+                </x-card>
+            @endif
+
+            @if ($canUpdate)
+                <x-card title="Details" subtitle="Edit inline, then save." icon="pencil">
+                    <form wire:submit="saveMeta" class="space-y-4">
+                        <x-input
+                            label="Time spent"
+                            type="number"
+                            min="0"
+                            wire:model="time_spent_minutes"
+                            :error="$errors->first('time_spent_minutes')"
+                            suffix="min"
+                        />
+                        <x-input label="Due date" type="date" wire:model="due_date" :error="$errors->first('due_date')" />
+                        @if ($canAssign)
+                            <x-select label="Assignee" wire:model="assigned_to" placeholder="Unassigned" :error="$errors->first('assigned_to')">
+                                @foreach ($users as $user)
+                                    <option value="{{ $user->id }}">{{ $user->name }}</option>
+                                @endforeach
+                            </x-select>
+                        @endif
+                        <x-button type="submit" size="sm" variant="secondary" target="saveMeta">Save details</x-button>
+                    </form>
+                </x-card>
+            @else
+                <x-card title="Details" icon="tasks">
+                    <dl class="space-y-3 text-sm">
+                        <div class="flex items-baseline justify-between gap-3">
+                            <dt class="text-muted">Assignee</dt>
+                            <dd class="font-medium text-ink">{{ $task->assignee?->name ?? '—' }}</dd>
+                        </div>
+                        <div class="flex items-baseline justify-between gap-3">
+                            <dt class="text-muted">Due</dt>
+                            <dd class="font-mono text-xs text-ink tabular-nums">{{ $task->due_date?->format('Y-m-d') ?? '—' }}</dd>
+                        </div>
+                        <div class="flex items-baseline justify-between gap-3">
+                            <dt class="text-muted">Time spent</dt>
+                            <dd class="font-mono text-xs text-ink tabular-nums">{{ $task->time_spent_minutes }} min</dd>
+                        </div>
+                    </dl>
+                </x-card>
+            @endif
+        </div>
     </div>
 </div>

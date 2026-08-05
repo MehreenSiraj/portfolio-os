@@ -1,77 +1,102 @@
 <div class="space-y-6">
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-            <p class="font-mono text-[11px] tracking-[0.16em] text-muted uppercase">Settings</p>
-            <h1 class="mt-2 text-3xl font-semibold tracking-tight">Task templates</h1>
-            <p class="mt-1 text-sm text-muted">On-page + technical SEO checklist items auto-copied onto new projects.</p>
-        </div>
-        <x-button wire:click="create">Add template</x-button>
-    </div>
+    <x-page-header
+        title="Task templates"
+        subtitle="On-page and technical SEO checklist items auto-copied onto every new project."
+        :breadcrumbs="[['label' => 'Workspace'], ['label' => 'Task templates']]"
+    >
+        <x-slot:meta>
+            <x-badge tone="neutral">{{ $templates->count() }} templates</x-badge>
+            <x-badge tone="success" dot>{{ $templates->where('is_active', true)->count() }} active</x-badge>
+        </x-slot:meta>
 
-    @if ($showForm)
-        <div class="rounded-xl border border-line bg-surface p-5">
-            <h2 class="text-base font-semibold">{{ $editingId ? 'Edit template' : 'New template' }}</h2>
-            <form wire:submit="save" class="mt-4 grid gap-4 sm:grid-cols-2">
-                <x-input label="Title" wire:model="title" error="{{ $errors->first('title') }}" class="sm:col-span-2" />
-                <div class="sm:col-span-2 space-y-1.5">
-                    <label class="block text-sm font-medium">Description</label>
-                    <textarea wire:model="description" rows="2" class="block w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm"></textarea>
-                </div>
-                <div class="space-y-1.5">
-                    <label class="block text-sm font-medium">Category</label>
-                    <select wire:model="category" class="block w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm">
-                        @foreach ($categoryOptions as $value => $label)
-                            <option value="{{ $value }}">{{ $label }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <x-input label="Sort order" type="number" min="0" wire:model="sort_order" />
-                <label class="flex items-center gap-2 text-sm sm:col-span-2">
-                    <input type="checkbox" wire:model="is_active" class="rounded border-line">
-                    Active (included on new projects)
-                </label>
-                <div class="flex gap-2 sm:col-span-2">
-                    <x-button type="submit">Save</x-button>
-                    <x-button type="button" variant="secondary" wire:click="cancel">Cancel</x-button>
-                </div>
-            </form>
-        </div>
+        <x-slot:actions>
+            <x-button icon="plus" wire:click="create">Add template</x-button>
+        </x-slot:actions>
+    </x-page-header>
+
+    @if ($templates->isEmpty())
+        <x-empty-state
+            icon="templates"
+            title="No checklist templates yet"
+            description="Templates become the setup task list on every project you create. Add the first one to start the checklist."
+        >
+            <x-button icon="plus" wire:click="create">Add template</x-button>
+        </x-empty-state>
+    @else
+        <x-table :headers="[
+            ['label' => 'Order', 'align' => 'right', 'width' => 'w-20'],
+            'Title',
+            'Category',
+            'Active',
+            ['label' => 'Actions', 'sr' => true, 'align' => 'right', 'width' => 'relative'],
+        ]">
+            @foreach ($templates as $template)
+                <x-table.row wire:key="template-{{ $template->id }}">
+                    <x-table.cell numeric muted>{{ $template->sort_order }}</x-table.cell>
+                    <x-table.cell>
+                        <p class="font-medium text-ink">{{ $template->title }}</p>
+                        @if ($template->description)
+                            <p class="mt-0.5 line-clamp-1 text-xs text-muted">{{ $template->description }}</p>
+                        @endif
+                    </x-table.cell>
+                    <x-table.cell muted>{{ $template->category->label() }}</x-table.cell>
+                    <x-table.cell>
+                        <x-badge :tone="$template->is_active ? 'success' : 'neutral'" dot>
+                            {{ $template->is_active ? 'Yes' : 'No' }}
+                        </x-badge>
+                    </x-table.cell>
+                    <x-table.cell align="right" nowrap>
+                        <div class="flex items-center justify-end gap-1">
+                            <x-tooltip text="Edit template">
+                                <x-button size="sm" variant="ghost" square icon="pencil" wire:click="edit({{ $template->id }})" aria-label="Edit {{ $template->title }}" />
+                            </x-tooltip>
+                            <x-tooltip :text="$template->is_active ? 'Exclude from new projects' : 'Include on new projects'">
+                                <x-button
+                                    size="sm"
+                                    variant="ghost"
+                                    square
+                                    :icon="$template->is_active ? 'eye-off' : 'eye'"
+                                    wire:click="toggleActive({{ $template->id }})"
+                                    aria-label="Toggle {{ $template->title }}"
+                                />
+                            </x-tooltip>
+                        </div>
+                    </x-table.cell>
+                </x-table.row>
+            @endforeach
+        </x-table>
     @endif
 
-    <div class="overflow-x-auto rounded-xl border border-line bg-surface">
-        <table class="min-w-full text-sm">
-            <thead class="border-b border-line text-left text-xs tracking-wide text-muted uppercase">
-                <tr>
-                    <th class="px-4 py-3">Order</th>
-                    <th class="px-4 py-3">Title</th>
-                    <th class="px-4 py-3">Category</th>
-                    <th class="px-4 py-3">Active</th>
-                    <th class="px-4 py-3"></th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-line">
-                @foreach ($templates as $template)
-                    <tr class="hover:bg-canvas/50">
-                        <td class="px-4 py-3 font-mono text-xs">{{ $template->sort_order }}</td>
-                        <td class="px-4 py-3">
-                            <p class="font-medium">{{ $template->title }}</p>
-                            @if ($template->description)
-                                <p class="mt-0.5 text-xs text-muted line-clamp-1">{{ $template->description }}</p>
-                            @endif
-                        </td>
-                        <td class="px-4 py-3 text-muted">{{ $template->category->label() }}</td>
-                        <td class="px-4 py-3">
-                            <x-badge :tone="$template->is_active ? 'success' : 'warn'">
-                                {{ $template->is_active ? 'Yes' : 'No' }}
-                            </x-badge>
-                        </td>
-                        <td class="px-4 py-3 text-right">
-                            <x-button size="sm" variant="ghost" wire:click="edit({{ $template->id }})">Edit</x-button>
-                            <x-button size="sm" variant="secondary" wire:click="toggleActive({{ $template->id }})">Toggle</x-button>
-                        </td>
-                    </tr>
+    <x-modal
+        :show="$showForm"
+        :title="$editingId ? 'Edit template' : 'New template'"
+        subtitle="Sort order controls where the item lands in the setup checklist."
+        close="cancel"
+        size="md"
+    >
+        <form id="template-form" wire:submit="save" class="grid gap-4 sm:grid-cols-2">
+            <x-input label="Title" wire:model="title" :error="$errors->first('title')" class="sm:col-span-2" required />
+            <x-textarea label="Description" wire:model="description" rows="2" :error="$errors->first('description')" class="sm:col-span-2" />
+
+            <x-select label="Category" wire:model="category" :error="$errors->first('category')">
+                @foreach ($categoryOptions as $value => $label)
+                    <option value="{{ $value }}">{{ $label }}</option>
                 @endforeach
-            </tbody>
-        </table>
-    </div>
+            </x-select>
+
+            <x-input label="Sort order" type="number" min="0" wire:model="sort_order" :error="$errors->first('sort_order')" />
+
+            <x-checkbox
+                class="sm:col-span-2"
+                label="Active"
+                hint="Included on new projects."
+                wire:model="is_active"
+            />
+        </form>
+
+        <x-slot:footer>
+            <x-button variant="ghost" wire:click="cancel">Cancel</x-button>
+            <x-button type="submit" form="template-form" target="save">Save template</x-button>
+        </x-slot:footer>
+    </x-modal>
 </div>

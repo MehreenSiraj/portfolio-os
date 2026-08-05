@@ -116,7 +116,7 @@ class Index extends Component
             AppSettings::set('ai_monthly_budget_cents', (int) $validated['ai_monthly_budget_cents']);
         }
 
-        session()->flash('status', 'Settings saved.');
+        $this->dispatch('toast', message: 'Settings saved.', tone: 'success');
     }
 
     public function render()

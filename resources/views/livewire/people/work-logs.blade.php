@@ -1,66 +1,107 @@
-<div>
-    <div class="mb-8">
-        <p class="font-mono text-[11px] tracking-[0.16em] text-muted uppercase">People</p>
-        <h1 class="mt-2 text-3xl font-semibold tracking-tight">Work logs</h1>
-        <p class="mt-1 text-sm text-muted">Short daily notes. Optional IDs of tasks / articles / links you touched.</p>
-    </div>
+<div class="space-y-6">
+    <x-page-header
+        title="Work logs"
+        subtitle="A short note per day. Optional IDs of the tasks, articles and links you touched."
+        :breadcrumbs="[['label' => 'People']]"
+    >
+        <x-slot:actions>
+            @if (auth()->user()?->hasPermission('scorecards.view'))
+                <x-button variant="secondary" icon="scorecard" href="{{ route('people.scorecard') }}" wire:navigate>My scorecard</x-button>
+            @endif
+        </x-slot:actions>
+    </x-page-header>
 
     @if ($canWrite)
-        <form wire:submit="save" class="mb-8 rounded-xl border border-line bg-surface p-5 space-y-4">
-            <h2 class="text-sm font-semibold">Today’s log</h2>
-            <div class="grid gap-3 sm:grid-cols-2">
-                <x-input type="date" label="Date" wire:model.live="logDate" error="{{ $errors->first('logDate') }}" />
-            </div>
-            <div class="space-y-1.5">
-                <label class="block text-sm font-medium">What did you work on?</label>
-                <textarea
+        <x-card title="Today’s log" subtitle="Saving again for the same date replaces that day’s note." icon="worklogs">
+            <form wire:submit="save" class="space-y-4">
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <x-input type="date" label="Date" wire:model.live="logDate" :error="$errors->first('logDate')" />
+                </div>
+
+                <x-textarea
+                    label="What did you work on?"
                     wire:model="body"
                     rows="4"
-                    class="block w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                     placeholder="Brief summary of the day…"
-                ></textarea>
-                @error('body') <p class="text-xs text-danger">{{ $message }}</p> @enderror
-            </div>
-            <div class="grid gap-3 sm:grid-cols-3">
-                <x-input label="Task IDs" wire:model="taskIdsInput" hint="Comma-separated" error="{{ $errors->first('taskIdsInput') }}" />
-                <x-input label="Article IDs" wire:model="articleIdsInput" hint="Optional" error="{{ $errors->first('articleIdsInput') }}" />
-                <x-input label="Link IDs" wire:model="linkIdsInput" hint="Optional" error="{{ $errors->first('linkIdsInput') }}" />
-            </div>
-            <x-button type="submit">Save log</x-button>
-        </form>
+                    :error="$errors->first('body')"
+                />
+
+                <div class="grid gap-3 sm:grid-cols-3">
+                    <x-input label="Task IDs" wire:model="taskIdsInput" hint="Comma-separated" :error="$errors->first('taskIdsInput')" />
+                    <x-input label="Article IDs" wire:model="articleIdsInput" hint="Optional" :error="$errors->first('articleIdsInput')" />
+                    <x-input label="Link IDs" wire:model="linkIdsInput" hint="Optional" :error="$errors->first('linkIdsInput')" />
+                </div>
+
+                <div class="flex flex-wrap justify-end gap-2">
+                    <x-button type="submit" target="save">Save log</x-button>
+                </div>
+            </form>
+        </x-card>
     @endif
 
-    @if ($canFilterUsers)
-        <div class="mb-4 w-full sm:w-56">
-            <label class="mb-1 block text-xs font-medium text-muted">Person</label>
-            <select wire:model.live="userId" class="block w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm">
+    <x-filter-bar target="userId">
+        @if ($canFilterUsers)
+            <x-select
+                size="sm"
+                class="w-auto"
+                data-page-search
+                wire:model.live="userId"
+                aria-label="Filter by person"
+            >
                 @foreach ($viewableUsers as $u)
                     <option value="{{ $u->id }}">{{ $u->name }}</option>
                 @endforeach
-            </select>
-        </div>
-    @endif
+            </x-select>
+        @else
+            <p class="px-1 text-xs text-muted">Your own logs, newest first.</p>
+        @endif
+
+        <x-slot:trailing>
+            {{ $logs->total() }} {{ \Illuminate\Support\Str::plural('log', $logs->total()) }}
+        </x-slot:trailing>
+    </x-filter-bar>
+
+    <div wire:loading.delay.long.flex wire:target="userId" class="hidden">
+        <x-skeleton variant="table" :rows="5" :cols="4" class="w-full" />
+    </div>
 
     @if ($logs->isEmpty())
-        <x-empty-state title="No work logs" description="Save a short note for the day above." />
+        <x-empty-state
+            icon="worklogs"
+            title="No work logs yet"
+            description="Write a couple of lines about the day above. Logs feed the scorecard and give supervisors context without a status meeting."
+        />
     @else
-        <ul class="space-y-3">
-            @foreach ($logs as $log)
-                <li class="rounded-xl border border-line bg-surface p-4">
-                    <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
-                        <p class="font-mono text-xs text-muted">{{ $log->local_date->format('Y-m-d') }} · {{ $log->user?->name }}</p>
-                        @if (! empty($log->task_ids) || ! empty($log->article_ids) || ! empty($log->link_ids))
-                            <p class="font-mono text-[10px] text-muted">
-                                @if (! empty($log->task_ids)) T:{{ implode(',', $log->task_ids) }} @endif
-                                @if (! empty($log->article_ids)) A:{{ implode(',', $log->article_ids) }} @endif
-                                @if (! empty($log->link_ids)) L:{{ implode(',', $log->link_ids) }} @endif
-                            </p>
-                        @endif
-                    </div>
-                    <p class="whitespace-pre-wrap text-sm text-ink">{{ $log->body }}</p>
-                </li>
-            @endforeach
-        </ul>
-        <div class="mt-4">{{ $logs->links() }}</div>
+        <div wire:loading.class="opacity-60" wire:target="userId" class="transition-opacity duration-150">
+            <x-table :headers="['Date', 'Person', 'Log', ['label' => 'Refs', 'align' => 'right']]">
+                @foreach ($logs as $log)
+                    <x-table.row wire:key="log-{{ $log->id }}">
+                        <x-table.cell mono nowrap>{{ $log->local_date->format('Y-m-d') }}</x-table.cell>
+
+                        <x-table.cell nowrap>
+                            <span class="flex items-center gap-2">
+                                <x-avatar :name="$log->user?->name ?? '—'" size="sm" />
+                                <span class="text-sm font-medium text-ink">{{ $log->user?->name ?? 'Deleted user' }}</span>
+                            </span>
+                        </x-table.cell>
+
+                        <x-table.cell>
+                            <p class="max-w-prose whitespace-pre-wrap text-sm text-ink-soft">{{ $log->body }}</p>
+                        </x-table.cell>
+
+                        <x-table.cell numeric muted>
+                            @if (! empty($log->task_ids)) <span class="block">T:{{ implode(',', $log->task_ids) }}</span> @endif
+                            @if (! empty($log->article_ids)) <span class="block">A:{{ implode(',', $log->article_ids) }}</span> @endif
+                            @if (! empty($log->link_ids)) <span class="block">L:{{ implode(',', $log->link_ids) }}</span> @endif
+                            @if (empty($log->task_ids) && empty($log->article_ids) && empty($log->link_ids))
+                                <span class="text-faint">—</span>
+                            @endif
+                        </x-table.cell>
+                    </x-table.row>
+                @endforeach
+            </x-table>
+        </div>
+
+        {{ $logs->links() }}
     @endif
 </div>

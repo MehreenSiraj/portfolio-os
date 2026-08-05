@@ -30,7 +30,7 @@ class DistributionShow extends Component
     {
         abort_unless(FinancePolicy::approveDistributions(Auth::user()), 403);
         $this->run = $distributions->approve($this->run, Auth::user());
-        session()->flash('status', 'Distribution approved and locked. Partner ledger credited.');
+        $this->dispatch('toast', message: 'Distribution approved and locked. Partner ledger credited.', tone: 'success');
     }
 
     public function void(DistributionService $distributions): void
@@ -38,7 +38,7 @@ class DistributionShow extends Component
         abort_unless(FinancePolicy::approveDistributions(Auth::user()), 403);
         $this->validate(['void_reason' => ['required', 'string', 'max:1000']]);
         $this->run = $distributions->void($this->run, Auth::user(), $this->void_reason);
-        session()->flash('status', 'Distribution voided with ledger adjustments.');
+        $this->dispatch('toast', message: 'Distribution voided with ledger adjustments.', tone: 'success');
     }
 
     public function exportCsv(CsvExportService $csv)
