@@ -135,7 +135,9 @@ To use MySQL instead, uncomment the `DB_*` block in `.env` and skip the `touch`.
 | Accountant | `accountant@example.com` | `password` |
 
 > [!WARNING]
-> The password `password` is only used when `APP_ENV=local` or `testing`. Anywhere else the seeder **generates a random password and prints it once** — copy it from the console output, it is not recoverable. You can also set `ADMIN_PASSWORD` in `.env` to choose your own. Never run the demo seeders on a real installation; they create fake projects, people and money.
+> The password `password` is only used when `APP_ENV` is `local` or `testing`. Anywhere else the seeder **generates a random password and prints it once** — copy it from the console output, it is not recoverable. Set `ADMIN_PASSWORD` in `.env` to choose your own instead.
+
+The **demo data** — fake projects, credentials, work, people and money — is part of the same command, but only when `APP_ENV` is `local` or `testing`. Anywhere else it is skipped and `migrate --seed` gives you roles, permissions, settings, task templates and one admin account, which is what a real installation wants. `SEED_DEMO_DATA` overrides the decision in either direction.
 
 The demo data uses `alpha-demo.test` / `beta-demo.test` domains and `example.com` addresses throughout.
 
