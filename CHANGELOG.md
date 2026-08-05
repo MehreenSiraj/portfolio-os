@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Demo seeders use generic, obviously fake data throughout.
 - The seeder now generates and prints a random admin password outside `local` and
   `testing`, instead of silently seeding a known one. `ADMIN_PASSWORD` overrides it.
+- The demo seeders no longer run outside `local` and `testing`, so `migrate --seed`
+  can no longer create fake projects or financial records on a real installation.
+  `SEED_DEMO_DATA` forces the decision either way.
 
 ### Added
 

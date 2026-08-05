@@ -124,7 +124,7 @@ To use MySQL instead, uncomment the `DB_*` block in `.env` and skip the `touch`.
 
 ### Demo credentials
 
-`php artisan migrate --seed` creates five accounts, one per role, so you can see how the app changes shape per role:
+On a local install, `php artisan migrate --seed` creates five accounts, one per role, so you can see how much the app changes shape depending on who is signed in:
 
 | Role | Email | Password |
 |---|---|---|
