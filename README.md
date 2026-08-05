@@ -33,6 +33,10 @@ It is also deliberately boring to host. The entire app runs on **PHP and MySQL o
 | ![Articles](docs/screenshots/articles.png) | ![Attendance](docs/screenshots/attendance.png) |
 | ![Settings](docs/screenshots/settings.png) | ![Login](docs/screenshots/login.png) |
 
+The full navigation, not a cut-down version, on a phone:
+
+<img src="docs/screenshots/mobile-dashboard.png" alt="Mobile dashboard" width="320">
+
 </details>
 
 ## Features
