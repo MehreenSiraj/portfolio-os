@@ -27,7 +27,9 @@
                         @foreach ($columns as $column)
                             <th
                                 scope="col"
-                                class="border-b border-line bg-subtle px-4 py-2.5 font-mono text-[10px] font-medium tracking-[0.1em] whitespace-nowrap text-muted uppercase {{ $column['width'] ?? '' }} {{ $column['align'] === 'right' ? 'text-right' : ($column['align'] === 'center' ? 'text-center' : '') }}"
+                                {{-- relative: an sr-only label is absolutely positioned, and without a
+                                     positioned cell it anchors to the page and widens the document. --}}
+                                class="relative border-b border-line bg-subtle px-4 py-2.5 font-mono text-[10px] font-medium tracking-[0.1em] whitespace-nowrap text-muted uppercase {{ $column['width'] ?? '' }} {{ $column['align'] === 'right' ? 'text-right' : ($column['align'] === 'center' ? 'text-center' : '') }}"
                             >
                                 @if ($column['sr'])
                                     <span class="sr-only">{{ $column['label'] }}</span>
