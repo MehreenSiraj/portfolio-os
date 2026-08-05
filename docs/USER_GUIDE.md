@@ -1,8 +1,8 @@
-# PinSA user guide (internal)
+# User guide
 
 ## 1. What this is
 
-PinSA Portfolio OS is the internal ops app for multi-site content portfolios: projects & credential vault, day-to-day work (tasks, articles, links), people metrics, and finance (revenue, expenses, P&L, partner distributions). Permissions come from **roles** (a user can hold several; capabilities combine). Money is PKR-based (minor units); distributions are **manual only**. Times display in **Asia/Karachi** (UTC stored).
+Portfolio OS is an ops app for multi-site content portfolios: projects & credential vault, day-to-day work (tasks, articles, links), people metrics, and finance (revenue, expenses, P&L, partner distributions). Permissions come from **roles** (a user can hold several; capabilities combine). Money is stored in minor units of your configured **base currency**; distributions are **manual only**. Times are stored in UTC and displayed in the timezone set in **Settings**.
 
 ## 2. Sign in
 
@@ -10,7 +10,7 @@ PinSA Portfolio OS is the internal ops app for multi-site content portfolios: pr
 2. Email + password. First successful login each day counts as **attendance check-in**.
 3. Forgot password → email reset link (when mail is configured).
 
-**Demo seed accounts** (local / staging after seed): password `password` for all  
+**Demo seed accounts** (local only — the seeder prints a random password anywhere else): password `password` for all  
 `admin@example.com` · `partner@example.com` · `supervisor@example.com` · `staff@example.com` · `accountant@example.com`
 
 ---
@@ -24,7 +24,7 @@ PinSA Portfolio OS is the internal ops app for multi-site content portfolios: pr
 **Workflow**
 1. Home — approvals / portfolio pulse / expiring credentials.
 2. Users — create accounts, assign roles (multi-role OK).
-3. Settings — org name, late hour, credential alert windows.
+3. Settings — org name, base currency & symbol, display timezone, late hour, credential alert windows.
 4. Projects — create domains, set ownership (must total 100%), team, vault.
 5. Task templates — default SEO checklist for new projects.
 6. Approvals / Money as needed for governance.
@@ -69,7 +69,7 @@ PinSA Portfolio OS is the internal ops app for multi-site content portfolios: pr
 **Nav:** Home · Projects · Revenue · Expenses · P&L · Distributions · Partners  
 
 **Workflow**
-1. Revenue — enter month USD + FX or import CSV; export as needed.
+1. Revenue — enter the month in the base or source currency (with its FX rate) or import CSV; export as needed.
 2. Expenses — direct vs shared; receipt upload; mark paid / bulk paid.
 3. P&L — pick month; check net by project.
 4. Distributions — draft for month → open run → approve (locks) or void with reason.
@@ -93,7 +93,7 @@ PinSA Portfolio OS is the internal ops app for multi-site content portfolios: pr
 
 - **Staff / Supervisor:** n/a in nav.
 - **Partner:** P&L, distributions (status), **Partners → statement**; CSV export where allowed. Do not edit approved distribution runs.
-- **Accountant / Admin:** Revenue (USD→PKR), expenses (shared costs allocated on P&L by revenue), **manual** distribution draft → approve/void, partner capital ledger.
+- **Accountant / Admin:** Revenue (source currency → base currency at a rate frozen per row), expenses (shared costs allocated on P&L by revenue), **manual** distribution draft → approve/void, partner capital ledger.
 
 ---
 

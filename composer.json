@@ -1,9 +1,9 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "portfolio-os/portfolio-os",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
+    "description": "Operations app for a portfolio of websites: projects, encrypted credential vault, work approvals, people metrics, and partner finance. Runs on PHP and MySQL shared hosting.",
+    "keywords": ["laravel", "livewire", "portfolio-management", "shared-hosting"],
     "license": "MIT",
     "require": {
         "php": "^8.3",
