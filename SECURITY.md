@@ -16,10 +16,7 @@ This project follows the `main` branch. Fixes land there first and are released 
 Report it privately in one of these ways:
 
 1. **GitHub private vulnerability reporting** — the *Security* tab → *Report a vulnerability*. This is preferred.
-2. **Email** — `TODO-SECURITY-CONTACT@example.com`
-
-> [!IMPORTANT]
-> The maintainer must replace the placeholder email above with a real address before this repository is made public. Until then, use GitHub private vulnerability reporting.
+2. **Email** — `info@iskills.com`
 
 Please include what you found, how to reproduce it, the version or commit, and the impact you think it has. A working proof of concept helps a lot.
 

@@ -61,11 +61,7 @@ representative at an online or offline event.
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the community leaders responsible for enforcement at:
 
-**`TODO-CONDUCT-CONTACT@example.com`**
-
-> **NOTE FOR THE MAINTAINER:** replace the placeholder address above with a real
-> monitored contact before making this repository public. A Code of Conduct with
-> no working reporting channel is worse than none at all.
+**`info@iskills.com`**
 
 All complaints will be reviewed and investigated promptly and fairly.
 
