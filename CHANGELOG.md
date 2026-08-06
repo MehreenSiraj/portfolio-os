@@ -7,6 +7,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1]
+
+A security and performance pass over the whole app ahead of announcing it publicly.
+No schema changes and no data migration; existing installations upgrade by
+uploading the new code and rebuilt assets.
+
+### Security
+
+- **Decrypted credential secrets no longer persist in Livewire component state.**
+  Revealing a secret stored the plaintext in a public property, which Livewire
+  serialises into `wire:snapshot` and echoes back to the browser on every later
+  interaction with that page. Only the revealed credential's id is kept now, and
+  the secret is decrypted per render. Any cross-site scripting on that page, or
+  anything logging request payloads, would previously have seen the plaintext.
+- **Closed cross-project reads through client-controlled component state.** A
+  partner could change `userId` on their own statement to read another partner's
+  ledger, the approval queue would render work items from projects the viewer was
+  not assigned to, and the links screen exposed budget totals for unauthorised
+  projects. Those properties are `#[Locked]` and the queries are scoped to the
+  caller's project assignments.
+- **Staff can no longer reassign tasks without `tasks.assign`**, including through
+  the bulk status bar, which previously aborted the batch instead of skipping
+  unauthorised rows.
+- **Exported CSVs neutralise spreadsheet formulas.** A description beginning `=`,
+  `+`, `-` or `@` executed on open in Excel and Sheets. Negative amounts still
+  export as numbers.
+- **The ops route refuses a token shorter than 32 characters** by returning 404,
+  and its responses are sent `no-store`, `no-referrer` and `noindex` so the token
+  in the URL is not carried into caches, crawlers or Referer headers.
+- **The ops cache-clear action no longer rewrites application layouts**, and the
+  Livewire asset recovery action discards a download that is not plausibly the
+  asset rather than saving an error page as executable JavaScript.
+- **Livewire is served from the application instead of a third-party CDN**, so no
+  runtime dependency on jsDelivr and no supply-chain exposure through it.
+
+### Fixed
+
+- **Distribution shares add up exactly.** Rounding each owner's share half-up
+  independently could distribute more than the profit — 101 paisa split 50/50 paid
+  out 102. The remainder now goes to the last owner and the lines always sum to the
+  distributable amount.
+- **Concurrent distribution approvals can no longer double-credit the partner
+  ledger**, and an approved run keeps the ownership snapshot taken at draft time
+  rather than re-capturing it, so the credited amounts always match the snapshot
+  they were computed from.
+- **Auto-expenses from article and link approval are idempotent** under
+  double-submit and concurrent requests, and a recurring expense that was
+  deliberately deleted is no longer resurrected by the next cron run.
+- Shared-expense allocations are no longer rewritten on every page view.
+- Currency column defaults no longer ship as one organisation's currency
+  (new migration; the original migrations are untouched).
+
+### Performance
+
+- The sixteen main screens went from roughly 3,100 database queries to 170, with no
+  change in what they display. The causes were per-request permission lookups,
+  settings reads hitting the database cache store repeatedly, per-row aggregate
+  helpers called from Blade, a P&L report that ran three queries per project, and
+  shared-expense allocations rebuilt on read.
+- Lazy loading now throws outside production, so a missing eager load fails in
+  development and CI instead of silently costing a query per row.
+
 ### Changed
 
 - Base currency, its minor-unit exponent and its display symbol are now driven by
@@ -34,11 +96,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `tests/Feature/CurrencyTest.php` covers zero-, two- and three-decimal currencies,
   frozen-rate conversion across differing exponents, and settings-over-config
   precedence.
+- Regression tests for each security and money fix above: vault snapshot leakage,
+  cross-project reads, CSV formula escaping, ops route hardening, distribution
+  rounding and concurrency, and expense idempotency.
 
-### Fixed
+### Documentation
 
-- Currency column defaults no longer ship as one organisation's currency
-  (new migration; the original migrations are untouched).
+- README rewritten around what the app does, with setup moved to
+  `docs/INSTALL.md`.
+- `SECURITY.md` states plainly that two-factor authentication is columns and a
+  settings toggle with no enrolment and no login challenge. The settings screen
+  says the same, so the toggle can no longer be mistaken for a control.
+- `DEPLOYMENT.md` documents the 32-character ops token floor, since a shorter
+  token now makes the route 404.
 
 ## [1.0.0]
 
@@ -121,5 +191,6 @@ the next began.
 - Credentials, passwords, keys and bank details are stripped before any prompt is built.
 - Monthly spend cap, per-request token and cost logging, and response caching.
 
-[Unreleased]: https://github.com/tnandla/portfolio-os/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/tnandla/portfolio-os/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/tnandla/portfolio-os/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/tnandla/portfolio-os/releases/tag/v1.0.0
