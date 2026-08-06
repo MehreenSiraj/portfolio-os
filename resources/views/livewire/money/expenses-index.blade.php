@@ -276,7 +276,19 @@
                             @endif
                         </x-table.cell>
                         <x-table.cell muted>{{ $e->category?->name ?? '—' }}</x-table.cell>
-                        <x-table.cell>{{ $e->description }}</x-table.cell>
+                        <x-table.cell>
+                            {{ $e->description }}
+                            @if (filled($e->receipt_path))
+                                <a
+                                    href="{{ route('expenses.receipt', $e) }}"
+                                    class="ml-1.5 inline-flex items-center gap-1 align-middle text-xs text-accent hover:underline"
+                                    aria-label="Download receipt for {{ $e->description }}"
+                                >
+                                    <x-icon name="download" class="size-3" />
+                                    <span>Receipt</span>
+                                </a>
+                            @endif
+                        </x-table.cell>
                         <x-table.cell numeric>
                             <x-money :paisa="$e->amount_paisa" />
                         </x-table.cell>

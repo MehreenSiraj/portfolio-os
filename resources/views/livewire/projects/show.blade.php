@@ -375,9 +375,14 @@
                             <x-icon name="articles" class="size-4" />
                         </span>
                         <span class="min-w-0 flex-1">
-                            <span class="block truncate text-sm text-ink">{{ $file->original_name }}</span>
+                            <a href="{{ route('media.download', $file) }}" class="block truncate text-sm text-ink hover:text-accent hover:underline">{{ $file->original_name }}</a>
                             <span class="block font-mono text-[10px] text-faint tabular-nums">{{ number_format($file->size / 1024, 1) }} KB</span>
                         </span>
+                        <x-tooltip text="Download">
+                            <x-button size="sm" square variant="ghost" href="{{ route('media.download', $file) }}" aria-label="Download {{ $file->original_name }}">
+                                <x-icon name="download" class="size-3.5" />
+                            </x-button>
+                        </x-tooltip>
                         @can('update', $project)
                             <x-tooltip text="Remove">
                                 <x-button size="sm" square variant="danger-ghost" wire:click="deleteMedia({{ $file->id }})" wire:confirm="Delete this file?" aria-label="Remove {{ $file->original_name }}">

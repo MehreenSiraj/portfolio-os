@@ -58,8 +58,11 @@
                         <ul class="mt-4 divide-y divide-line border-t border-line">
                             @foreach ($task->media as $file)
                                 <li class="flex items-center justify-between gap-3 py-2.5" wire:key="media-{{ $file->id }}">
-                                    <span class="min-w-0 flex-1 truncate text-sm font-medium text-ink">{{ $file->original_name }}</span>
+                                    <a href="{{ route('media.download', $file) }}" class="min-w-0 flex-1 truncate text-sm font-medium text-ink hover:text-accent hover:underline">{{ $file->original_name }}</a>
                                     <span class="font-mono text-[11px] text-faint tabular-nums">{{ number_format($file->size / 1024, 0) }} KB</span>
+                                    <x-tooltip text="Download">
+                                        <x-button size="sm" square variant="ghost" icon="download" href="{{ route('media.download', $file) }}" aria-label="Download {{ $file->original_name }}" />
+                                    </x-tooltip>
                                     <x-tooltip text="Remove file">
                                         <x-button
                                             size="sm"
@@ -82,7 +85,9 @@
                 <x-card title="Evidence" icon="upload">
                     <ul class="divide-y divide-line">
                         @foreach ($task->media as $file)
-                            <li class="truncate py-2 text-sm font-medium text-ink">{{ $file->original_name }}</li>
+                            <li class="py-2">
+                                <a href="{{ route('media.download', $file) }}" class="block truncate text-sm font-medium text-ink hover:text-accent hover:underline">{{ $file->original_name }}</a>
+                            </li>
                         @endforeach
                     </ul>
                 </x-card>

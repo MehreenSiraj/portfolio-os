@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\MediaDownloadController;
 use App\Http\Controllers\OpsController;
 use App\Http\Controllers\PublicStorageController;
 use App\Http\Middleware\EnsurePermission;
@@ -69,6 +70,11 @@ Route::post('/logout', function () {
 
 Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
     Route::get('/', Dashboard::class)->name('dashboard');
+
+    // Attachments live on the private disk; these are the only way to read one back.
+    Route::get('/media/{media}', [MediaDownloadController::class, 'media'])->name('media.download');
+    Route::get('/money/expenses/{expense}/receipt', [MediaDownloadController::class, 'receipt'])
+        ->name('expenses.receipt');
 
     // Milestone 7 — routes always registered; components 404 when AI key is missing
     Route::get('/ai', AiAsk::class)->name('ai.ask');
