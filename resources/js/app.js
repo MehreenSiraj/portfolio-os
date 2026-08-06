@@ -1,7 +1,7 @@
 /*
  * Portfolio OS front-end runtime.
  *
- * Livewire + Alpine boot from the layout (see layouts/* with livewire.esm.js).
+ * Livewire + Alpine boot from `@livewireScripts` in the layout.
  * Alpine resolves `x-data="osShell()"` style expressions against `window`, so
  * every behaviour below is registered as a global factory instead of an
  * Alpine.data() plugin. That keeps this file bundler-only — no npm runtime deps.

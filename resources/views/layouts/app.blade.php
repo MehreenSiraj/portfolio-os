@@ -87,16 +87,9 @@
         <div x-data x-init="$dispatch('toast', { message: @js(session('error')), tone: 'danger' })" class="sr-only" role="alert">{{ session('error') }}</div>
     @endif
 
-    {{-- Livewire JS from CDN when server vendor dist is incomplete. --}}
-    @livewireScriptConfig
-    {{-- One boot per document: wire:navigate re-runs body scripts, and starting Livewire twice re-registers Alpine's magics. --}}
-    <script type="module" data-navigate-once>
-        if (! window.osLivewireBooted) {
-            window.osLivewireBooted = true;
-            const { Livewire, Alpine } = await import('https://cdn.jsdelivr.net/gh/livewire/livewire@v4.3.5/dist/livewire.esm.js');
-            window.Alpine = Alpine;
-            Livewire.start();
-        }
-    </script>
+    {{-- Served by the app's own Livewire route: no third-party CDN executes here.
+         If an FTP upload omits vendor/livewire/livewire/dist, repair it with
+         /_ops/livewire-assets rather than pointing the page at a CDN. --}}
+    @livewireScripts
 </body>
 </html>

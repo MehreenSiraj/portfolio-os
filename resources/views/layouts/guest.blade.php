@@ -28,15 +28,7 @@
             </div>
         </div>
     </div>
-    @livewireScriptConfig
-    {{-- One boot per document: the post-login navigate swaps this layout for the app shell. --}}
-    <script type="module" data-navigate-once>
-        if (! window.osLivewireBooted) {
-            window.osLivewireBooted = true;
-            const { Livewire, Alpine } = await import('https://cdn.jsdelivr.net/gh/livewire/livewire@v4.3.5/dist/livewire.esm.js');
-            window.Alpine = Alpine;
-            Livewire.start();
-        }
-    </script>
+    {{-- Served by the app's own Livewire route: no third-party CDN executes here. --}}
+    @livewireScripts
 </body>
 </html>
