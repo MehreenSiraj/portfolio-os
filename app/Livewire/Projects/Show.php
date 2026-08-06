@@ -11,10 +11,12 @@ use App\Services\CredentialVaultService;
 use App\Services\ProjectOwnershipService;
 use App\Support\Money;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -76,8 +78,18 @@ class Show extends Component
 
     public string $cred_metadata_json = '';
 
-    /** Revealed secrets keyed by credential id (session-local only). */
-    public array $revealed = [];
+    /**
+     * Ids the user has chosen to reveal this page view.
+     *
+     * Only ids live in component state. Livewire serialises every public property
+     * into `wire:snapshot` and echoes it back on each request, so a decrypted
+     * secret held here would be re-transmitted for the life of the page. The
+     * plaintext is resolved per render instead — see `revealedSecrets()`.
+     *
+     * @var array<int, int>
+     */
+    #[Locked]
+    public array $revealedIds = [];
 
     // Files
     public $upload;
@@ -316,7 +328,7 @@ class Show extends Component
                 $payload['secret'] = $validated['cred_secret'];
             }
             $credential->update($payload);
-            unset($this->revealed[$credential->id]);
+            $this->forgetRevealed($credential->id);
             $this->dispatch('toast', message: 'Credential updated.', tone: 'success');
         }
 
@@ -330,7 +342,7 @@ class Show extends Component
         $credential = $this->project->credentials()->findOrFail($credentialId);
         $this->authorize('delete', $credential);
         $credential->delete();
-        unset($this->revealed[$credentialId]);
+        $this->forgetRevealed($credentialId);
         $this->project->load('credentials');
         $this->dispatch('toast', message: 'Credential removed.', tone: 'success');
     }
@@ -340,13 +352,54 @@ class Show extends Component
         $credential = $this->project->credentials()->findOrFail($credentialId);
         $this->authorize('reveal', $credential);
 
-        $data = $vault->reveal($credential, Auth::user(), request());
-        $this->revealed[$credentialId] = $data;
+        $vault->reveal($credential, Auth::user(), request());
+
+        if (! in_array($credentialId, $this->revealedIds, true)) {
+            $this->revealedIds[] = $credentialId;
+        }
     }
 
     public function hideCredential(int $credentialId): void
     {
-        unset($this->revealed[$credentialId]);
+        $this->forgetRevealed($credentialId);
+    }
+
+    protected function forgetRevealed(int $credentialId): void
+    {
+        $this->revealedIds = array_values(array_diff($this->revealedIds, [$credentialId]));
+    }
+
+    /**
+     * Decrypt the currently revealed secrets for this render only.
+     *
+     * Authorisation is re-checked per credential on every render, so revoking
+     * `credentials.reveal` mid-session stops the reveal immediately.
+     *
+     * @param  Collection<int, Credential>  $credentials
+     * @return array<int, array{username: ?string, secret: ?string, metadata: array<string, mixed>}>
+     */
+    protected function revealedSecrets($credentials, CredentialVaultService $vault): array
+    {
+        if ($this->revealedIds === []) {
+            return [];
+        }
+
+        $user = Auth::user();
+        $revealed = [];
+
+        foreach ($credentials as $credential) {
+            if (! in_array($credential->id, $this->revealedIds, true)) {
+                continue;
+            }
+
+            if (! $user?->can('reveal', $credential)) {
+                continue;
+            }
+
+            $revealed[$credential->id] = $vault->plaintext($credential);
+        }
+
+        return $revealed;
     }
 
     public function cancelCredentialForm(): void
@@ -402,13 +455,16 @@ class Show extends Component
         $this->dispatch('toast', message: 'File removed.', tone: 'success');
     }
 
-    public function render()
+    public function render(CredentialVaultService $vault)
     {
+        $credentials = $this->project->credentials()->orderBy('type')->orderBy('label')->get();
+
         return view('livewire.projects.show', [
             'statusOptions' => ProjectStatus::options(),
             'credentialTypes' => CredentialType::options(),
             'users' => User::query()->where('is_active', true)->orderBy('name')->get(),
-            'credentials' => $this->project->credentials()->orderBy('type')->orderBy('label')->get(),
+            'credentials' => $credentials,
+            'revealed' => $this->revealedSecrets($credentials, $vault),
         ]);
     }
 }
