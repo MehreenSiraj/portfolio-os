@@ -55,6 +55,12 @@ uploading the new code and rebuilt assets.
 - **Auto-expenses from article and link approval are idempotent** under
   double-submit and concurrent requests, and a recurring expense that was
   deliberately deleted is no longer resurrected by the next cron run.
+- **Attachments can be downloaded.** Task evidence, project files and expense
+  receipts could be uploaded and deleted but never read back — there was no link
+  and no route, so an approver could not open the evidence they were approving
+  against. Downloads are authorised against the record the file hangs off, and
+  everything is served as an attachment with an opaque content type so an uploaded
+  `.html` or `.svg` cannot execute on the app's origin.
 - Shared-expense allocations are no longer rewritten on every page view.
 - Currency column defaults no longer ship as one organisation's currency
   (new migration; the original migrations are untouched).
