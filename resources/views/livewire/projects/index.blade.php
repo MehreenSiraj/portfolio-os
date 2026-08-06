@@ -169,12 +169,13 @@
                             }">{{ $project->status->label() }}</x-badge>
                         </x-table.cell>
 
-                        <x-table.cell numeric muted>{{ \App\Support\Money::rounded($project->monthRevenuePaisa()) }}</x-table.cell>
-                        <x-table.cell numeric muted>{{ \App\Support\Money::rounded($project->monthCostPaisa()) }}</x-table.cell>
+                        @php($month = $monthRows[$project->id] ?? \App\Services\ProfitAndLossService::emptyRow())
+                        <x-table.cell numeric muted>{{ \App\Support\Money::rounded($month['revenue_paisa']) }}</x-table.cell>
+                        <x-table.cell numeric muted>{{ \App\Support\Money::rounded($month['total_expense_paisa']) }}</x-table.cell>
                         <x-table.cell numeric>
-                            <x-money :paisa="$project->monthProfitPaisa()" signed />
+                            <x-money :paisa="$month['net_profit_paisa']" signed />
                         </x-table.cell>
-                        <x-table.cell numeric muted>{{ $project->openTasksCount() }}</x-table.cell>
+                        <x-table.cell numeric muted>{{ $openTaskCounts[$project->id] ?? 0 }}</x-table.cell>
                         <x-table.cell numeric muted>{{ \App\Support\Money::rounded((int) $project->acquisition_cost_paisa) }}</x-table.cell>
 
                         <x-table.cell align="right" nowrap>

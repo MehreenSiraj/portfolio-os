@@ -130,6 +130,35 @@ class Project extends Model
     }
 
     /**
+     * Open task counts for several projects at once, keyed by project id.
+     *
+     * Lists render this per row, so doing it one COUNT at a time turns a page of
+     * projects into a page of queries.
+     *
+     * @param  array<int, int>  $projectIds
+     * @return array<int, int>
+     */
+    public static function openTaskCountsFor(array $projectIds): array
+    {
+        if ($projectIds === [] || ! Schema::hasTable('tasks')) {
+            return [];
+        }
+
+        return Task::query()
+            ->whereIn('project_id', $projectIds)
+            ->open()
+            ->where(function ($q) {
+                $q->where('is_recurrence_source', false)
+                    ->orWhereNull('is_recurrence_source');
+            })
+            ->groupBy('project_id')
+            ->selectRaw('project_id, COUNT(*) as aggregate')
+            ->pluck('aggregate', 'project_id')
+            ->map(fn ($count) => (int) $count)
+            ->all();
+    }
+
+    /**
      * Open (non-approved) tasks for this project.
      */
     public function openTasksCount(): int

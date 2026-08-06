@@ -8,6 +8,7 @@ use App\Models\Credential;
 use App\Models\Project;
 use App\Models\User;
 use App\Services\CredentialVaultService;
+use App\Services\ProfitAndLossService;
 use App\Services\ProjectOwnershipService;
 use App\Support\Money;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -455,9 +456,20 @@ class Show extends Component
         $this->dispatch('toast', message: 'File removed.', tone: 'success');
     }
 
-    public function render(CredentialVaultService $vault)
+    public function render(CredentialVaultService $vault, ProfitAndLossService $pnl)
     {
-        $credentials = $this->project->credentials()->orderBy('type')->orderBy('label')->get();
+        // The credential policy reads `$credential->project`, so a page of
+        // credentials became a page of project lookups without this.
+        $credentials = $this->project->credentials()
+            ->with('project')
+            ->orderBy('type')
+            ->orderBy('label')
+            ->get();
+
+        // The header stats used to call monthRevenuePaisa/monthCostPaisa/monthProfitPaisa
+        // separately, each running a full P&L pass. Resolve the month once.
+        $month = $pnl->monthRowsByProject(Auth::user(), now('UTC')->format('Y-m'), [(int) $this->project->id])[(int) $this->project->id]
+            ?? ProfitAndLossService::emptyRow((int) $this->project->id, (string) $this->project->domain);
 
         return view('livewire.projects.show', [
             'statusOptions' => ProjectStatus::options(),
@@ -465,6 +477,8 @@ class Show extends Component
             'users' => User::query()->where('is_active', true)->orderBy('name')->get(),
             'credentials' => $credentials,
             'revealed' => $this->revealedSecrets($credentials, $vault),
+            'month' => $month,
+            'openTasks' => Project::openTaskCountsFor([(int) $this->project->id])[(int) $this->project->id] ?? 0,
         ]);
     }
 }

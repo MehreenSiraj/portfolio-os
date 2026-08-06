@@ -114,6 +114,11 @@ class Index extends Component
 
         $user->roles()->sync($sync);
 
+        // Authorisation lookups are memoised per instance, so an admin editing
+        // their own roles would otherwise render this request with the old set.
+        $user->flushPermissionCache();
+        Auth::user()?->flushPermissionCache();
+
         $this->showForm = false;
         $this->resetForm();
         $this->dispatch('toast', message: $isCreating ? 'User created.' : 'User updated.', tone: 'success');

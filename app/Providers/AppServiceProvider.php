@@ -14,6 +14,8 @@ use App\Policies\LinkPolicy;
 use App\Policies\ProjectPolicy;
 use App\Policies\TaskPolicy;
 use App\Policies\TaskTemplatePolicy;
+use App\Support\AppSettings;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -27,6 +29,12 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        AppSettings::forgetMemo();
+
+        // Catch N+1 regressions while developing and in CI, never in production:
+        // a lazy load that slipped through should be slow, not a 500.
+        Model::preventLazyLoading(! $this->app->isProduction());
+
         // Hostinger / Cloudflare terminate TLS; force HTTPS URLs in production.
         if ($this->app->environment('production')) {
             URL::forceScheme('https');

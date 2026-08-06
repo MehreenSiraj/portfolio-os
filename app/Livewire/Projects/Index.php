@@ -5,6 +5,7 @@ namespace App\Livewire\Projects;
 use App\Enums\ProjectStatus;
 use App\Models\Project;
 use App\Models\User;
+use App\Services\ProfitAndLossService;
 use App\Services\ProjectOwnershipService;
 use App\Services\SetupChecklistService;
 use App\Support\Money;
@@ -260,7 +261,7 @@ class Index extends Component
         $this->resetValidation();
     }
 
-    public function render()
+    public function render(ProfitAndLossService $pnl)
     {
         $this->authorize('viewAny', Project::class);
 
@@ -279,8 +280,14 @@ class Index extends Component
             ->orderBy('domain')
             ->paginate(12);
 
+        // Batch the month figures for the rows on this page. Calling the model's
+        // per-project helpers from Blade cost several queries per row.
+        $pageProjectIds = $projects->getCollection()->pluck('id')->map(fn ($id) => (int) $id)->all();
+
         return view('livewire.projects.index', [
             'projects' => $projects,
+            'monthRows' => $pnl->monthRowsByProject(Auth::user(), now('UTC')->format('Y-m'), $pageProjectIds),
+            'openTaskCounts' => Project::openTaskCountsFor($pageProjectIds),
             'statusOptions' => ProjectStatus::options(),
             'users' => User::query()->where('is_active', true)->orderBy('name')->get(),
             'canManageOwnership' => Auth::user()->hasPermission('projects.manage_ownership'),

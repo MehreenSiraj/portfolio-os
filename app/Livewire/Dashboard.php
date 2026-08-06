@@ -12,6 +12,7 @@ use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
 use App\Services\PeopleVisibilityService;
+use App\Services\ProfitAndLossService;
 use App\Support\AppSettings;
 use App\Support\DisplayTimezone;
 use Illuminate\Support\Facades\Auth;
@@ -23,7 +24,7 @@ use Livewire\Component;
 #[Title('Dashboard')]
 class Dashboard extends Component
 {
-    public function render()
+    public function render(ProfitAndLossService $pnl)
     {
         $user = Auth::user();
         $canViewProjects = $user?->hasPermission('projects.view');
@@ -62,6 +63,24 @@ class Dashboard extends Component
         $recentProjects = $canViewProjects
             ? (clone $projectsQuery)->orderByDesc('updated_at')->limit(5)->get()
             : collect();
+
+        // One P&L pass for the whole portfolio instead of two aggregates per
+        // project. The per-project helpers each run the full P&L service, so the
+        // old version scaled its query count with the number of projects.
+        $monthRevenuePaisa = 0;
+        $monthCostPaisa = 0;
+        if ($canViewProjects) {
+            // Scope to the projects this user can see, not to their finance
+            // permissions: the stat must match the portfolio list below it.
+            $visibleProjectIds = (clone $projectsQuery)->pluck('id')->map(fn ($id) => (int) $id)->all();
+            $monthTotals = $pnl->forMonth($user, now('UTC')->format('Y-m'), $visibleProjectIds)['totals'];
+            $monthRevenuePaisa = (int) $monthTotals['revenue_paisa'];
+            $monthCostPaisa = (int) $monthTotals['total_expense_paisa'];
+        }
+
+        $recentOpenTaskCounts = Project::openTaskCountsFor(
+            $recentProjects->pluck('id')->map(fn ($id) => (int) $id)->all()
+        );
 
         $tz = DisplayTimezone::name();
         $todayLocal = DisplayTimezone::today();
@@ -167,12 +186,9 @@ class Dashboard extends Component
             'expiring' => $expiring,
             'thresholds' => $thresholds,
             'recentProjects' => $recentProjects,
-            'monthRevenuePlaceholder' => $canViewProjects
-                ? (int) (clone $projectsQuery)->get()->sum(fn ($p) => $p->monthRevenuePaisa())
-                : 0,
-            'monthCostPlaceholder' => $canViewProjects
-                ? (int) (clone $projectsQuery)->get()->sum(fn ($p) => $p->monthCostPaisa())
-                : 0,
+            'monthRevenuePlaceholder' => $monthRevenuePaisa,
+            'monthCostPlaceholder' => $monthCostPaisa,
+            'recentOpenTaskCounts' => $recentOpenTaskCounts,
             'canViewProjects' => $canViewProjects,
             'canViewCredentials' => (bool) $user?->hasPermission('credentials.view'),
             'myTasksDueToday' => $myTasksDueToday,

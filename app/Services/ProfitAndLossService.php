@@ -78,24 +78,40 @@ class ProfitAndLossService
             'net_profit_paisa' => 0,
         ];
 
+        // Three grouped queries for the whole report rather than three per project:
+        // the portfolio view is the common case and this is the hot path behind
+        // P&L, distributions and the dashboard.
+        $projectIdsOnReport = $projects->pluck('id')->all();
+
+        $revenueByProject = Revenue::query()
+            ->whereIn('project_id', $projectIdsOnReport)
+            ->whereDate('period_month', '>=', $fromMonth)
+            ->whereDate('period_month', '<=', $toMonth)
+            ->groupBy('project_id')
+            ->selectRaw('project_id, SUM(amount_pkr_paisa) as total')
+            ->pluck('total', 'project_id');
+
+        $directByProject = Expense::query()
+            ->whereIn('project_id', $projectIdsOnReport)
+            ->where('is_shared', false)
+            ->whereDate('expense_date', '>=', $from)
+            ->whereDate('expense_date', '<=', $to)
+            ->groupBy('project_id')
+            ->selectRaw('project_id, SUM(amount_paisa) as total')
+            ->pluck('total', 'project_id');
+
+        $sharedByProject = ExpenseAllocation::query()
+            ->whereIn('project_id', $projectIdsOnReport)
+            ->whereDate('period_month', '>=', $fromMonth)
+            ->whereDate('period_month', '<=', $toMonth)
+            ->groupBy('project_id')
+            ->selectRaw('project_id, SUM(amount_paisa) as total')
+            ->pluck('total', 'project_id');
+
         foreach ($projects as $project) {
-            $revenue = (int) Revenue::query()
-                ->where('project_id', $project->id)
-                ->whereDate('period_month', '>=', $fromMonth)
-                ->whereDate('period_month', '<=', $toMonth)
-                ->sum('amount_pkr_paisa');
-
-            $direct = (int) Expense::query()
-                ->directForProject($project->id)
-                ->whereDate('expense_date', '>=', $from)
-                ->whereDate('expense_date', '<=', $to)
-                ->sum('amount_paisa');
-
-            $shared = (int) ExpenseAllocation::query()
-                ->where('project_id', $project->id)
-                ->whereDate('period_month', '>=', $fromMonth)
-                ->whereDate('period_month', '<=', $toMonth)
-                ->sum('amount_paisa');
+            $revenue = (int) ($revenueByProject[$project->id] ?? 0);
+            $direct = (int) ($directByProject[$project->id] ?? 0);
+            $shared = (int) ($sharedByProject[$project->id] ?? 0);
 
             $totalExpense = $direct + $shared;
             $net = $revenue - $totalExpense;
@@ -140,6 +156,43 @@ class ProfitAndLossService
             $start->copy()->endOfMonth()->toDateString(),
             $projectIds,
         );
+    }
+
+    /**
+     * Month rows keyed by project id, for lists that show revenue/cost/profit per row.
+     *
+     * One report pass for the whole page instead of a model method per cell.
+     *
+     * @param  array<int, int>|null  $projectIds
+     * @return array<int, array<string, mixed>>
+     */
+    public function monthRowsByProject(?User $user, string $yearMonth, ?array $projectIds = null): array
+    {
+        $rows = [];
+
+        foreach ($this->forMonth($user, $yearMonth, $projectIds)['projects'] as $row) {
+            $rows[(int) $row['project_id']] = $row;
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Zero-filled row for a project with no activity in the month.
+     *
+     * @return array<string, mixed>
+     */
+    public static function emptyRow(int $projectId = 0, string $domain = ''): array
+    {
+        return [
+            'project_id' => $projectId,
+            'domain' => $domain,
+            'revenue_paisa' => 0,
+            'direct_expense_paisa' => 0,
+            'shared_expense_paisa' => 0,
+            'total_expense_paisa' => 0,
+            'net_profit_paisa' => 0,
+        ];
     }
 
     public function projectRowForMonth(Project $project, string $yearMonth): array

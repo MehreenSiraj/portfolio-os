@@ -55,7 +55,14 @@ class ExpenseService
             'link_building' => 'Link building',
         ];
 
-        foreach ($cats as $slug => $name) {
+        // Called on every expenses page load so the module self-heals. One
+        // existence check beats a firstOrCreate per category on the hot path.
+        $existing = ExpenseCategory::query()
+            ->whereIn('slug', array_keys($cats))
+            ->pluck('slug')
+            ->all();
+
+        foreach (array_diff_key($cats, array_flip($existing)) as $slug => $name) {
             $this->ensureCategory($slug, $name);
         }
     }

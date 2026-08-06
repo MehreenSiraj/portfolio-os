@@ -21,6 +21,22 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
+    /**
+     * Request-lifetime memos for authorisation lookups.
+     *
+     * Not persisted or serialised; cleared by `flushPermissionCache()` and by
+     * `refresh()`, so a role change inside one request is picked up.
+     *
+     * @var Collection<int, Role>|null
+     */
+    protected ?Collection $resolvedRoles = null;
+
+    /** @var Collection<int, string>|null */
+    protected ?Collection $resolvedPermissionNames = null;
+
+    /** @var array<int, int>|null */
+    protected ?array $resolvedAccessibleProjectIds = null;
+
     protected function casts(): array
     {
         return [
@@ -103,13 +119,47 @@ class User extends Authenticatable
     }
 
     /**
+     * Roles with their permissions, fetched once per instance.
+     *
+     * Permission checks run dozens of times per request — the navigation alone
+     * checks every entry, and policies check again per row — so re-querying here
+     * dominated page load. Database-backed sessions and cache mean the request
+     * already pays for DB round trips; this must not add to them.
+     *
+     * @return Collection<int, Role>
+     */
+    protected function resolvedRoles(): Collection
+    {
+        return $this->resolvedRoles ??= $this->roles()->with('permissions')->get();
+    }
+
+    /**
+     * Drop the memoised roles, permissions and project scope.
+     *
+     * Call after changing a user's roles or project assignments within a request.
+     */
+    public function flushPermissionCache(): static
+    {
+        $this->resolvedRoles = null;
+        $this->resolvedPermissionNames = null;
+        $this->resolvedAccessibleProjectIds = null;
+
+        return $this;
+    }
+
+    public function refresh(): static
+    {
+        $this->flushPermissionCache();
+
+        return parent::refresh();
+    }
+
+    /**
      * Effective permissions = union of all assigned role permissions.
      */
     public function permissionNames(): Collection
     {
-        return $this->roles()
-            ->with('permissions')
-            ->get()
+        return $this->resolvedPermissionNames ??= $this->resolvedRoles()
             ->flatMap(fn (Role $role) => $role->permissions->pluck('name'))
             ->unique()
             ->values();
@@ -142,11 +192,13 @@ class User extends Authenticatable
         $this->roles()->syncWithoutDetaching([
             $roleId => ['project_id' => $projectId],
         ]);
+
+        $this->flushPermissionCache();
     }
 
     public function hasRole(string $roleName): bool
     {
-        return $this->roles()->where('name', $roleName)->exists();
+        return $this->resolvedRoles()->contains(fn (Role $role) => $role->name === $roleName);
     }
 
     public function isAdmin(): bool
@@ -161,6 +213,14 @@ class User extends Authenticatable
      * @return array<int, int>
      */
     public function accessibleProjectIds(): array
+    {
+        return $this->resolvedAccessibleProjectIds ??= $this->computeAccessibleProjectIds();
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    protected function computeAccessibleProjectIds(): array
     {
         if ($this->isAdmin() || $this->hasPortfolioFinanceAccess()) {
             return Project::query()->pluck('id')->map(fn ($id) => (int) $id)->all();
