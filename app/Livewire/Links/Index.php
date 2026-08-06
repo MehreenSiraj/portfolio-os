@@ -333,20 +333,25 @@ class Index extends Component
         $monthApprovedCount = 0;
         $monthSpend = 0;
         $budgetProject = null;
+        // Scope the budget lookup: `$projectFilter` comes from the query string, so an
+        // unscoped find would report another project's link count and spend.
         if ($this->projectFilter !== '') {
-            $budgetProject = Project::query()->find($this->projectFilter);
-            $start = now('UTC')->startOfMonth()->toDateString();
-            $end = now('UTC')->endOfMonth()->toDateString();
-            $monthApprovedCount = Link::query()
-                ->where('project_id', $this->projectFilter)
+            $budgetProject = Project::query()->accessibleBy($user)->find($this->projectFilter);
+        }
+
+        if ($budgetProject) {
+            $totals = Link::query()
+                ->where('project_id', $budgetProject->id)
                 ->where('workflow_status', LinkWorkflowStatus::Approved->value)
-                ->whereBetween('link_date', [$start, $end])
-                ->count();
-            $monthSpend = (int) Link::query()
-                ->where('project_id', $this->projectFilter)
-                ->where('workflow_status', LinkWorkflowStatus::Approved->value)
-                ->whereBetween('link_date', [$start, $end])
-                ->sum('cost_paisa');
+                ->whereBetween('link_date', [
+                    now('UTC')->startOfMonth()->toDateString(),
+                    now('UTC')->endOfMonth()->toDateString(),
+                ])
+                ->selectRaw('COUNT(*) as approved_count, COALESCE(SUM(cost_paisa), 0) as spend_paisa')
+                ->first();
+
+            $monthApprovedCount = (int) $totals->approved_count;
+            $monthSpend = (int) $totals->spend_paisa;
         }
 
         return view('livewire.links.index', [

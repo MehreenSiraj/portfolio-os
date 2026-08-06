@@ -167,6 +167,11 @@ class Index extends Component
             if ($task->type === TaskType::Setup && ! $isRecurring) {
                 $payload['type'] = TaskType::Setup;
             }
+            // Reassignment needs tasks.assign, matching the task detail screen.
+            // `tasks.update` alone only covers editing a task you are assigned to.
+            if (! Auth::user()->can('assign', $task)) {
+                unset($payload['assigned_to']);
+            }
             $task->update($payload);
         } else {
             $payload['status'] = TaskStatus::Assigned;
@@ -229,15 +234,33 @@ class Index extends Component
         $status = TaskStatus::from($this->bulkStatus);
         $tasks = Task::query()->accessibleBy(Auth::user())->whereIn('id', $this->selectedIds)->get();
 
+        $actor = Auth::user();
         $count = 0;
+
         foreach ($tasks as $task) {
+            // Every branch needs an object-level check, not just the method-level
+            // permission: skip rather than abort so one bad row cannot fail the batch.
+            $ability = match ($status) {
+                TaskStatus::InProgress, TaskStatus::Assigned => 'update',
+                TaskStatus::Submitted => 'submit',
+                TaskStatus::Approved => 'approve',
+                default => null,
+            };
+
+            if ($ability === null || ! $actor->can($ability, $task)) {
+                continue;
+            }
+
+            if ($status === TaskStatus::Assigned && ! $actor->can('assign', $task)) {
+                continue;
+            }
+
             try {
                 match ($status) {
-                    TaskStatus::InProgress => $workflow->start($task, Auth::user()),
-                    TaskStatus::Submitted => $this->authorize('submit', $task) && $workflow->submit($task, Auth::user()),
-                    TaskStatus::Approved => $this->authorize('approve', $task) && $workflow->approve($task, Auth::user()),
+                    TaskStatus::InProgress => $workflow->start($task, $actor),
+                    TaskStatus::Submitted => $workflow->submit($task, $actor),
+                    TaskStatus::Approved => $workflow->approve($task, $actor),
                     TaskStatus::Assigned => $task->update(['status' => TaskStatus::Assigned]),
-                    default => null,
                 };
                 $count++;
             } catch (ValidationException) {

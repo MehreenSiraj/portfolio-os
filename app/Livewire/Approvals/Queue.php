@@ -12,6 +12,7 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -21,13 +22,20 @@ class Queue extends Component
 {
     use AuthorizesRequests;
 
+    #[Locked]
     public int $cursor = 0;
 
     public string $rejection_reason = '';
 
     public bool $showReject = false;
 
-    /** @var array<int, array{type: string, id: int}> */
+    /**
+     * The queue, built server-side from what this user may approve. Locked so a
+     * client cannot inject ids for work on projects they are not assigned to.
+     *
+     * @var array<int, array{type: string, id: int}>
+     */
+    #[Locked]
     public array $queueKeys = [];
 
     public function mount(): void
@@ -238,11 +246,17 @@ class Queue extends Component
         }
 
         $key = $this->queueKeys[$this->cursor];
+        $user = Auth::user();
 
+        // Scope the fetch as well as the queue build: the item is rendered in full,
+        // so an id that has drifted out of scope must not resolve.
         $model = match ($key['type']) {
-            'task' => Task::query()->with(['project', 'assignee', 'media', 'comments.user'])->find($key['id']),
-            'article' => Article::query()->with(['project', 'writer'])->find($key['id']),
-            'link' => Link::query()->with(['project', 'assignee'])->find($key['id']),
+            'task' => Task::query()->with(['project', 'assignee', 'media', 'comments.user'])
+                ->accessibleBy($user)->find($key['id']),
+            'article' => Article::query()->with(['project', 'writer'])
+                ->accessibleBy($user)->find($key['id']),
+            'link' => Link::query()->with(['project', 'assignee'])
+                ->accessibleBy($user)->find($key['id']),
             default => null,
         };
 

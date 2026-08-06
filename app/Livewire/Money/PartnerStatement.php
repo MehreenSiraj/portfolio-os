@@ -11,6 +11,7 @@ use App\Support\Currency;
 use App\Support\Money;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -21,6 +22,12 @@ class PartnerStatement extends Component
 {
     use WithPagination;
 
+    /**
+     * Whose statement is on screen. Resolved once in `mount()` against the
+     * caller's permissions; locked so the client cannot swap in another
+     * partner's id afterwards and read their ledger.
+     */
+    #[Locked]
     public ?int $userId = null;
 
     public function mount(?int $user = null): void
