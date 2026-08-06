@@ -6,22 +6,7 @@ By participating you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Local setup
 
-```bash
-git clone https://github.com/tnandla/portfolio-os.git
-cd portfolio-os
-
-composer install
-cp .env.example .env
-php artisan key:generate
-
-touch database/database.sqlite
-php artisan migrate --seed
-
-npm install && npm run build
-php artisan serve
-```
-
-Sign in as `admin@example.com` / `password`. That password only applies when `APP_ENV=local` or `testing`.
+Follow [docs/INSTALL.md](docs/INSTALL.md), then sign in as `admin@example.com` / `password`.
 
 If you prefer everything running at once, `composer dev` starts the server, queue listener, log tailer and Vite together via `concurrently`.
 
@@ -70,6 +55,8 @@ The reference deployment is **Hostinger shared hosting over FTP**. There is no N
 
 - Timestamps are **stored in UTC** and displayed in the configured timezone via `App\Support\DisplayTimezone`. Do not call `now()` for anything user-facing that means "today" — use the helper, because attendance and monthly reporting depend on it.
 - Index every foreign key, and every column used in a `where` or `orderBy`.
+- **Lazy loading is disabled outside production.** A missing `with()` throws locally and in CI instead of quietly issuing a query per row. If a test or page starts failing with `LazyLoadingViolationException`, eager-load the relation — including relations your *policies* read, which is easy to miss.
+- Aggregate in SQL, not in PHP, and never inside a loop over rows. Where a list needs per-row totals, add a batch helper that takes an array of IDs (see `ProfitAndLossService::monthRowsByProject()`).
 
 ### AI features
 
