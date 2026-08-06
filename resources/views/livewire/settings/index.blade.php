@@ -68,7 +68,7 @@
             <x-checkbox
                 wire:model="two_factor_required"
                 label="Require two-factor authentication"
-                hint="Off by default."
+                hint="Records the intent only. There is no enrolment or login challenge yet, so turning this on does not protect any account."
             />
         </x-card>
 

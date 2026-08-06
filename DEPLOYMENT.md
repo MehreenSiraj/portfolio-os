@@ -15,13 +15,20 @@ There is **no Node**, Redis, Docker, or SSH requirement on the server. PHP 8.3+ 
 
 ## Security warning (loaded gun)
 
-`GET /_ops/{action}?token=…` can run **migrate**, **storage-link**, **cache-clear**, and **optimize** without SSH.
+`GET /_ops/{action}?token=…` can run **migrate**, **storage-link**, **cache-clear**, **optimize** and **livewire-assets** without SSH.
 
-- Set a long random `OPS_TOKEN` only while you need it.
-- Prefer **HTTPS** and a hard-to-guess token (32+ random chars).
-- **Rotate / clear `OPS_TOKEN` after successful first deploy** (or at least after migrations).
-- Leaving `OPS_TOKEN` empty disables the route entirely (404).
-- Rate-limited per IP (`OPS_THROTTLE`, default 5/minute).
+- Set a long random `OPS_TOKEN` only while you need it, over **HTTPS** only.
+- **`OPS_TOKEN` must be at least 32 characters.** A shorter token is treated as no token and the route returns 404 — if the route seems to have vanished, check the token length first.
+- Leaving `OPS_TOKEN` empty disables the route entirely (404). That is the correct steady state.
+- **Rotate / clear `OPS_TOKEN` after a successful deploy** (or at least after migrations).
+- Tokens are compared in constant time and the route is rate-limited per IP (`OPS_THROTTLE`, default 5/minute).
+- Responses are sent `no-store`, `no-referrer` and `noindex` so the token in the URL is not leaked onward.
+
+Generate one with:
+
+```bash
+php -r 'echo bin2hex(random_bytes(24)), PHP_EOL;'
+```
 
 Never commit real tokens or production `.env`.
 

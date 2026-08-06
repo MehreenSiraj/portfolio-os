@@ -37,9 +37,12 @@ GET /_ops/{migrate|storage-link|cache-clear|optimize|livewire-assets}?token=…
 Anyone with the token can run migrations and clear caches on your installation.
 
 - It is **disabled entirely (404) when `OPS_TOKEN` is empty.** That is the default in `.env.example`, and it should be the steady state.
-- Set `OPS_TOKEN` to 32+ random characters only for as long as a deploy needs it, then **clear or rotate it** and clear the config cache.
+- A token **shorter than 32 characters is refused** and the route 404s, so a weak value cannot stand in for authentication.
+- Set the token only for as long as a deploy needs it, then **clear or rotate it** and clear the config cache.
 - Only ever use it over **HTTPS**. Over plain HTTP the token is in the URL, in the clear, and in access logs.
+- Tokens are compared with `hash_equals`, and responses are sent `no-store` / `no-referrer` / `noindex` so the URL is not carried into caches, crawlers or Referer headers.
 - It is rate-limited per IP (`OPS_THROTTLE`, default 5/minute), which slows guessing but is not a substitute for a strong token.
+- `livewire-assets` recovers vendor JavaScript that an incomplete FTP upload left behind, by downloading it from the Livewire repository over verified TLS. Downloads are rejected unless they look like the expected asset, but this is still a network fetch that writes a file your users' browsers execute — hold the token accordingly.
 - Never commit a real token, and never leave one in a config cache you ship.
 
 If your host gives you SSH or a terminal, you do not need this route at all — leave `OPS_TOKEN` empty permanently.
@@ -58,6 +61,10 @@ Project credentials (hosting, CMS, registrar, ad network logins) are stored encr
 When the optional AI assistant is configured, credential rows, passwords, API keys and bank details are stripped from the payload before any prompt is built, and the model is never allowed to generate SQL that gets executed — questions map onto a fixed whitelist of read-only report methods that re-apply the caller's own permissions.
 
 With no `AI_API_KEY` set, no outbound call is ever made. If you would rather not trust the boundary, leave it unset.
+
+### Two-factor authentication is not implemented
+
+The `users` table has `two_factor_secret`, `two_factor_recovery_codes` and `two_factor_confirmed_at` columns, and the settings screen has a "Require two-factor authentication" toggle. **None of it is wired up.** There is no enrolment flow and no challenge at login, so enabling the toggle records an intention and protects nothing. Do not count it as a control.
 
 ### Other notes
 
