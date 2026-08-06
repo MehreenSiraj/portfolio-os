@@ -192,6 +192,16 @@ class OpsController extends Controller
 
                     continue;
                 }
+
+                // This writes a file the browser will execute, so refuse anything
+                // that is not plausibly the asset: GitHub error pages are HTML and
+                // would otherwise be saved as livewire.min.js.
+                if (! $this->looksLikeAsset($file, $body)) {
+                    $lines[] = "FAIL {$file}: response was not the expected asset, discarded";
+
+                    continue;
+                }
+
                 $written = File::put($target, $body);
                 $lines[] = "WROTE {$file} ({$written} bytes)";
             } catch (Throwable $e) {
@@ -204,6 +214,31 @@ class OpsController extends Controller
             .' size='.(is_file($min) ? (string) filesize($min) : '0');
 
         return implode("\n", $lines)."\n";
+    }
+
+    /**
+     * Cheap sanity check on a recovered vendor asset.
+     *
+     * Not a substitute for an integrity hash, but it rejects the realistic failure
+     * mode: an HTML error page or a truncated download saved over a script tag.
+     */
+    private function looksLikeAsset(string $file, string $body): bool
+    {
+        if (strlen($body) > 8 * 1024 * 1024) {
+            return false;
+        }
+
+        $head = ltrim(substr($body, 0, 512));
+
+        if (str_starts_with($head, '<')) {
+            return false;
+        }
+
+        return match (true) {
+            str_ends_with($file, '.json') => json_validate($body),
+            str_ends_with($file, '.js') => strlen($body) > 1024,
+            default => true,
+        };
     }
 
     private function installedLivewireVersion(): string
