@@ -90,10 +90,25 @@ class DistributionService
                 // Only distribute positive net; negative nets still recorded with 0 credit
                 $distributable = max(0, $net);
 
-                foreach ($owners as $owner) {
+                // Rounding each share independently would not sum back to the net:
+                // 101 paisa split 50/50 pays out 51 + 51 and invents a paisa, while
+                // thirds lose one. Floor every share and give the last owner the
+                // remainder, the same way shared expenses are allocated, so the
+                // lines always add up to exactly the profit being distributed.
+                $owners = array_values($owners);
+                $lastOwnerIndex = count($owners) - 1;
+                $allocated = 0;
+
+                foreach ($owners as $index => $owner) {
                     $userId = (int) $owner['user_id'];
                     $bps = (int) $owner['share_bps'];
-                    $gross = Money::applyBps($distributable, $bps);
+
+                    $gross = $index === $lastOwnerIndex
+                        ? $distributable - $allocated
+                        : intdiv($distributable * $bps, 10000);
+
+                    $allocated += $gross;
+
                     $hold = Money::applyBps($gross, $holdbackBps);
                     $credit = $gross - $hold;
 
@@ -134,15 +149,24 @@ class DistributionService
         }
 
         return DB::transaction(function () use ($run, $actor) {
-            $run->refresh();
-            if ($run->status !== DistributionStatus::Draft) {
+            // Lock the row before re-reading the status: two concurrent approvals
+            // (a double-click is enough) would otherwise both see a draft and both
+            // post ledger credits, paying every partner twice.
+            $locked = DistributionRun::query()
+                ->whereKey($run->getKey())
+                ->lockForUpdate()
+                ->first();
+
+            if (! $locked || $locked->status !== DistributionStatus::Draft) {
                 throw new RuntimeException('Distribution run is no longer a draft.');
             }
 
-            // Freeze ownership again at approval time into snapshot (immutable thereafter)
-            $projectIds = $run->lines()->pluck('project_id')->unique()->all();
-            $snapshot = $this->captureOwnershipSnapshot($projectIds);
+            $run = $locked;
 
+            // The ownership snapshot taken when the draft was computed is the
+            // provenance of these line amounts. Re-capturing it here would replace
+            // it with today's ownership and leave the record claiming the money was
+            // split by shares it was not.
             $periodLabel = $run->period_month->format('Y-m');
 
             foreach ($run->lines as $line) {
@@ -165,7 +189,6 @@ class DistributionService
 
             $run->update([
                 'status' => DistributionStatus::Approved,
-                'ownership_snapshot' => $snapshot,
                 'approved_by' => $actor->id,
                 'approved_at' => now(),
             ]);

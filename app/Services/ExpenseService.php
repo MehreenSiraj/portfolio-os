@@ -267,51 +267,80 @@ class ExpenseService
             ->where('is_active', true)
             ->whereDate('next_run_date', '<=', $asOf->toDateString())
             ->orderBy('id')
-            ->each(function (RecurringExpense $template) use ($asOf, &$created) {
-                while (
-                    $template->is_active
-                    && $template->next_run_date
-                    && $template->next_run_date->lte($asOf)
-                    && ($template->ends_on === null || $template->next_run_date->lte($template->ends_on))
-                ) {
-                    $date = $template->next_run_date->toDateString();
-                    $exists = Expense::query()
-                        ->where('recurring_expense_id', $template->id)
-                        ->whereDate('expense_date', $date)
-                        ->exists();
+            ->each(function (RecurringExpense $candidate) use ($asOf, &$created) {
+                // Cron on shared hosting is a drip, not a daemon, so two runs can
+                // overlap. Locking the template serialises them: without it both
+                // runs see no expense for the due date and each create one.
+                $created += DB::transaction(function () use ($candidate, $asOf) {
+                    $template = RecurringExpense::query()
+                        ->whereKey($candidate->getKey())
+                        ->lockForUpdate()
+                        ->first();
 
-                    if (! $exists) {
-                        $expense = Expense::query()->create([
-                            'project_id' => $template->is_shared ? null : $template->project_id,
-                            'is_shared' => $template->is_shared,
-                            'expense_category_id' => $template->expense_category_id,
-                            'amount_paisa' => $template->amount_paisa,
-                            'currency' => $template->currency,
-                            'description' => $template->description,
-                            'expense_date' => $date,
-                            'source_type' => RecurringExpense::class,
-                            'source_id' => $template->id,
-                            'created_by' => $template->created_by,
-                            'recurring_expense_id' => $template->id,
-                            'is_paid' => false,
-                            'notes' => 'Auto-generated from recurring expense #'.$template->id,
-                        ]);
-
-                        if ($expense->is_shared) {
-                            $this->allocations->allocateExpense($expense);
-                        }
-
-                        $created++;
+                    if (! $template) {
+                        return 0;
                     }
 
-                    $next = $template->next_run_date->copy()->addMonthNoOverflow();
-                    $day = min($template->day_of_month, $next->daysInMonth);
-                    $template->next_run_date = $next->day($day);
-                    $template->last_generated_at = now();
-                    $template->save();
-                    $template->refresh();
-                }
+                    return $this->generateForTemplate($template, $asOf);
+                });
             });
+
+        return $created;
+    }
+
+    /**
+     * Emit every instance a single template still owes, up to `$asOf`.
+     */
+    protected function generateForTemplate(RecurringExpense $template, Carbon $asOf): int
+    {
+        $created = 0;
+
+        while (
+            $template->is_active
+            && $template->next_run_date
+            && $template->next_run_date->lte($asOf)
+            && ($template->ends_on === null || $template->next_run_date->lte($template->ends_on))
+        ) {
+            $date = $template->next_run_date->toDateString();
+
+            // Ignore the soft-delete scope: an instance somebody deleted on purpose
+            // must not come back on the next cron run.
+            $exists = Expense::withTrashed()
+                ->where('recurring_expense_id', $template->id)
+                ->whereDate('expense_date', $date)
+                ->exists();
+
+            if (! $exists) {
+                $expense = Expense::query()->create([
+                    'project_id' => $template->is_shared ? null : $template->project_id,
+                    'is_shared' => $template->is_shared,
+                    'expense_category_id' => $template->expense_category_id,
+                    'amount_paisa' => $template->amount_paisa,
+                    'currency' => $template->currency,
+                    'description' => $template->description,
+                    'expense_date' => $date,
+                    'source_type' => RecurringExpense::class,
+                    'source_id' => $template->id,
+                    'created_by' => $template->created_by,
+                    'recurring_expense_id' => $template->id,
+                    'is_paid' => false,
+                    'notes' => 'Auto-generated from recurring expense #'.$template->id,
+                ]);
+
+                if ($expense->is_shared) {
+                    $this->allocations->allocateExpense($expense);
+                }
+
+                $created++;
+            }
+
+            $next = $template->next_run_date->copy()->addMonthNoOverflow();
+            $day = min($template->day_of_month, $next->daysInMonth);
+            $template->next_run_date = $next->day($day);
+            $template->last_generated_at = now();
+            $template->save();
+            $template->refresh();
+        }
 
         return $created;
     }
@@ -343,6 +372,10 @@ class ExpenseService
             $actor,
             $linkOnSource,
         ) {
+            // Lock the article or link before reading its expense link. Without this
+            // a double-clicked approval runs two transactions that both see no
+            // expense yet and both raise one, double-charging the project.
+            $source->newQuery()->whereKey($source->getKey())->lockForUpdate()->first();
             $source->refresh();
 
             if ($source->{$linkOnSource}) {
